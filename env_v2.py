@@ -28,10 +28,9 @@ class EnvironmentManager:
     # create a new symbol in the top-most environment, regardless of whether that symbol exists
     # in a lower environment
     def create(self, symbol, value, var_type):
-
         cur_func_env = self.environment[-1]
         if symbol in cur_func_env[-1]:   # symbol already defined in current scope
-            return False
+            return 1
         cur_func_env[-1][symbol] = value
         
         if var_type == "int":
@@ -40,11 +39,10 @@ class EnvironmentManager:
             self.set(symbol, create_value(False))
         elif var_type == "str":
             self.set(symbol, create_value(""))
-        else: 
-            print("Error: unknown type")
-            return False
+        else:
+            return 2
         
-        return True
+        return 0
 
     # used when we enter a new function - start with empty dictionary to hold parameters.
     def push_func(self):

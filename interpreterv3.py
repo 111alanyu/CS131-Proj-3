@@ -155,9 +155,14 @@ class Interpreter(InterpreterBase):
     def __var_def(self, var_ast):
         var_name = var_ast.get("name")
         var_type = var_ast.get("var_type")
-        if not self.env.create(var_name, Interpreter.NIL_VALUE, var_type):
+        status = self.env.create(var_name, Interpreter.NIL_VALUE, var_type)
+        if status == 1:
             super().error(
                 ErrorType.NAME_ERROR, f"Duplicate definition for variable {var_name}"
+            )
+        elif status == 2:
+            super().error(
+                ErrorType.TYPE_ERROR, f"Unknown type {var_type} in variable definition"
             )
 
     def __eval_expr(self, expr_ast):
