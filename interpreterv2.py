@@ -117,7 +117,7 @@ class Interpreter(InterpreterBase):
         self.env.push_func()
         # and add the formal arguments to the activation record
         for arg_name, value in args.items():
-          self.env.create(arg_name, value)
+          self.env.create(arg_name, value, Interpreter.NIL_VALUE)
         _, return_val = self.__run_statements(func_ast.get("statements"))
         self.env.pop_func()
         return return_val
@@ -154,7 +154,8 @@ class Interpreter(InterpreterBase):
     
     def __var_def(self, var_ast):
         var_name = var_ast.get("name")
-        if not self.env.create(var_name, Interpreter.NIL_VALUE):
+        var_type = var_ast.get("var_type")
+        if not self.env.create(var_name, Interpreter.NIL_VALUE, var_type):
             super().error(
                 ErrorType.NAME_ERROR, f"Duplicate definition for variable {var_name}"
             )
@@ -334,3 +335,20 @@ class Interpreter(InterpreterBase):
             return (ExecStatus.RETURN, Interpreter.NIL_VALUE)
         value_obj = copy.copy(self.__eval_expr(expr_ast))
         return (ExecStatus.RETURN, value_obj)
+
+
+if __name__ == "__main__":
+    program = """
+    func foo(a: int) : int {
+        print(a + 1);
+    }
+
+    func main() : void {
+        var temp: int;
+        print(temp);
+        temp = 5;
+        print(temp);
+    }
+    """
+    interpreter = Interpreter()
+    interpreter.run(program)
