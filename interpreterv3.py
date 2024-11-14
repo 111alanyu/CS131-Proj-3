@@ -4,15 +4,16 @@ import copy
 from enum import Enum
 
 from brewparse import parse_program
-from env_v2 import EnvironmentManager
+from env_v3 import EnvironmentManager
 from intbase import InterpreterBase, ErrorType
-from type_valuev2 import Type, Value, create_value, get_printable
+from type_valuev3 import Type, Value, create_value, get_printable, create_value_from_type
 
 
 class ExecStatus(Enum):
     CONTINUE = 1
     RETURN = 2
 
+hard_code_num = str(5145672421)
 
 # Main interpreter class
 class Interpreter(InterpreterBase):
@@ -32,6 +33,7 @@ class Interpreter(InterpreterBase):
     # into an abstract syntax tree (ast)
     def run(self, program):
         ast = parse_program(program)
+        self.__set_up_struct_table(ast)
         self.__set_up_function_table(ast)
         self.env = EnvironmentManager()
         self.__call_func_aux("main", [])
@@ -55,6 +57,18 @@ class Interpreter(InterpreterBase):
                 f"Function {name} taking {num_params} params not found",
             )
         return candidate_funcs[num_params]
+    
+    def __set_up_struct_table(self, ast):
+        self.struct_name_to_ast = {}
+        for struct_def in ast.get("structs"):
+            struct_name = struct_def.get("name")
+            fields = struct_def.get("fields")
+            if struct_name in self.struct_name_to_ast:
+                super().error(ErrorType.TYPE_ERROR, f"Duplicate struct definition: {struct_name}")
+            self.struct_name_to_ast[struct_name] = {
+                "fields": {field.get("name"): field.get("var_type") for field in fields},
+                "ast": struct_def
+            }
 
     def __run_statements(self, statements):
         self.env.push_block()
@@ -151,20 +165,36 @@ class Interpreter(InterpreterBase):
             super().error(
                 ErrorType.NAME_ERROR, f"Undefined variable {var_name} in assignment"
             )
-    
+
     def __var_def(self, var_ast):
         var_name = var_ast.get("name")
         var_type = var_ast.get("var_type")
-        status = self.env.create(var_name, Interpreter.NIL_VALUE, var_type)
-        if status == 1:
-            super().error(
-                ErrorType.NAME_ERROR, f"Duplicate definition for variable {var_name}"
-            )
-        elif status == 2:
+        value = None
+
+        if var_type in self.struct_name_to_ast:
+            struct_def = self.struct_name_to_ast[var_type]
+            fields = {}
+            for field_name, field_type in struct_def["fields"].items():
+                fields[field_name] = create_value_from_type(field_type)
+            fields["__CHANGED_HARD_CODE_" + hard_code_num] = False
+            value = Value(Type.STRUCT, fields)
+        elif var_type == Type.INT:
+            value = create_value_from_type(Type.INT)
+        elif var_type == Type.STRING:
+            value = create_value_from_type(Type.STRING)
+        elif var_type == Type.BOOL:
+            value = create_value_from_type(Type.BOOL)
+        else: # Unknown type 
             super().error(
                 ErrorType.TYPE_ERROR, f"Unknown type {var_type} in variable definition"
             )
 
+        status = self.env.create(var_name, value)
+        if not status:
+            super().error(
+                ErrorType.NAME_ERROR, f"Duplicate definition for variable {var_name}"
+            )
+        
     def __eval_expr(self, expr_ast):
         if expr_ast.elem_type == InterpreterBase.NIL_NODE:
             return Interpreter.NIL_VALUE
@@ -291,6 +321,15 @@ class Interpreter(InterpreterBase):
             Type.BOOL, x.type() != y.type() or x.value() != y.value()
         )
 
+        #  set up operations on structs 
+        self.op_to_lambda[Type.STRUCT] = {}
+        self.op_to_lambda[Type.STRUCT]["=="] = lambda x, y: Value(
+            Type.BOOL, x.type() == y.type() and x.value() == y.value()
+        )
+        self.op_to_lambda[Type.STRUCT]["!="] = lambda x, y: Value(
+            Type.BOOL, x.type() != y.type() or x.value() != y.value()
+        )
+
     def __do_if(self, if_ast):
         cond_ast = if_ast.get("condition")
         result = self.__eval_expr(cond_ast)
@@ -355,5 +394,39 @@ if __name__ == "__main__":
         print(temp);
     }
     """
-    interpreter = Interpreter()
+    program = """
+    func foo(a:int, b:string, c:int, d:bool) : int {
+        print(b, d);
+        return a + c;
+    }
+
+    func talk_to(name:string) : void {
+        if (name == "Carey") {
+            print("Go away!");
+            return;  /* using return is OK w/void, just don't specify a value */
+        }
+        print("Greetings");
+    }
+
+    func main() : void {
+        print(foo(10, "blah", 20, false));
+        talk_to("Bonnie");
+    }
+    """
+
+    program = """
+    struct dog {
+        name: string;
+        vaccinated: bool;
+    }
+
+    func main() : void {
+        var a: int;
+        var d: dog;  /* d is an object reference whose value is nil */
+        print(a == 0);
+        print (d == nil);  /* prints true, because d was initialized to nil */
+    }
+    """
+
+    interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
