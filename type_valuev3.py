@@ -46,6 +46,8 @@ def create_value_from_type(val_type):
         return Value(Type.STRING, "")
     elif val_type == Type.NIL:
         return Value(Type.NIL, None)
+    elif val_type == Type.STRUCT:
+        return Value(Type.STRUCT, {})
     else:
         raise ValueError("Unknown value type")
 

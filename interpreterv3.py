@@ -173,6 +173,8 @@ class Interpreter(InterpreterBase):
             struct_def = self.struct_name_to_ast[var_type]
             fields = {}
             for field_name, field_type in struct_def["fields"].items():
+                if field_type in self.struct_name_to_ast:
+                    field_type = Type.STRUCT
                 fields[field_name] = create_value_from_type(field_type)
             value = Value(Type.STRUCT, fields)
         elif var_type == Type.INT:
@@ -222,6 +224,8 @@ class Interpreter(InterpreterBase):
             struct_def = self.struct_name_to_ast[struct_name]
             fields = {}
             for field_name, field_type in struct_def["fields"].items():
+                if field_type in self.struct_name_to_ast:
+                    field_type = Type.STRUCT
                 fields[field_name] = create_value_from_type(field_type)
             
             self.env.create(struct_name, Value(Type.STRUCT, fields))
@@ -459,6 +463,25 @@ if __name__ == "__main__":
     print(s1.a);
     print(s1.b);
     print(s1.c);
+    }
+    """
+
+    program = """
+    struct foo {
+        i:int;
+    }
+
+    struct bar {
+        f:foo;
+    }
+
+    func main() : void {
+        var b : bar;
+        b = new bar;
+        b.f = new foo;
+        b.f.i = 10;
+
+        print(b.f.i);
     }
     """
     interpreter = Interpreter(trace_output=False)
