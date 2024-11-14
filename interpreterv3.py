@@ -171,10 +171,16 @@ class Interpreter(InterpreterBase):
     def __assign(self, assign_ast):
         var_name = assign_ast.get("name")
         value_obj = self.__eval_expr(assign_ast.get("expression"))
-        if not self.env.set(var_name, value_obj):
+        ret = self.env.set(var_name, value_obj)
+        if ret == VariableError.NAME_ERROR:
             super().error(
                 ErrorType.NAME_ERROR, f"Undefined variable {var_name} in assignment"
             )
+        elif ret == VariableError.FAULT_ERROR:
+            super().error(
+                ErrorType.FAULT_ERROR, f"Attempt to access field of nil object"
+            )
+        
 
     def __var_def(self, var_ast):
         var_name = var_ast.get("name")
@@ -182,13 +188,8 @@ class Interpreter(InterpreterBase):
         value = None
 
         if var_type in self.struct_name_to_ast:
-            struct_def = self.struct_name_to_ast[var_type]
-            fields = {}
-            for field_name, field_type in struct_def["fields"].items():
-                if field_type in self.struct_name_to_ast:
-                    field_type = Type.STRUCT
-                fields[field_name] = create_value_from_type(field_type)
-            value = Value(Type.STRUCT, fields)
+            value = create_value_from_type(Type.STRUCT)
+        
         elif var_type == Type.INT:
             value = create_value_from_type(Type.INT)
         elif var_type == Type.STRING:
@@ -243,7 +244,7 @@ class Interpreter(InterpreterBase):
                     field_type = Type.STRUCT
                 fields[field_name] = create_value_from_type(field_type)
             
-            self.env.create(struct_name, Value(Type.STRUCT, fields))
+            self.env.set(struct_name, Value(Type.STRUCT, fields))
             return Value(Type.STRUCT, fields)
 
     def __eval_op(self, arith_ast):
@@ -635,5 +636,43 @@ func foo(b : bool) : void {
         print(x.a);
     }
     """
+
+    program = """
+struct foo {
+  a:int;
+  b:bool;
+  c:string;
+}
+
+func main() : void {
+  var s1 : foo;
+
+  print(s1);
+
+  s1 = new foo;
+  print(s1.a);
+  print(s1.b);
+  print(s1.c);
+
+  s1.a = 10;
+  s1.b = true;
+  s1.c = "barf";
+  print(s1.a);
+  print(s1.b);
+  print(s1.c);
+}
+    """
+
+    program = """
+    struct s {
+        a:int;
+    }
+
+    func main() : int {
+        var x: s;
+        x.a = 10; 
+    }
+    """
+
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)

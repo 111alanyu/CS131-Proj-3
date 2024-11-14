@@ -36,11 +36,13 @@ class EnvironmentManager:
             cur_func_env = self.environment[-1]
             for env in reversed(cur_func_env):
                 if struct_name in env:
+                    if env[struct_name] == None: 
+                        return VariableError.FAULT_ERROR
                     struct = env[struct_name].value()
                     if field_name in struct:
                         struct[field_name] = value
                         return True
-            return False
+            return VariableError.FAULT_ERROR
         else:
             cur_func_env = self.environment[-1]
             for env in reversed(cur_func_env):
@@ -48,7 +50,7 @@ class EnvironmentManager:
                     env[symbol] = value
                     return True
             
-            return False
+            return VariableError.NAME_ERROR
 
     # create a new symbol in the top-most environment, regardless of whether that symbol exists
     # in a lower environment
