@@ -36,7 +36,6 @@ class Interpreter(InterpreterBase):
         self.env = EnvironmentManager()
         self.__call_func_aux("main", [])
 
-    # TODO: (Active) Support function return types
     def __set_up_function_table(self, ast):
         self.func_name_to_ast = {}
         for func_def in ast.get("functions"):
@@ -124,6 +123,18 @@ class Interpreter(InterpreterBase):
         args = {}
         for formal_ast, actual_ast in zip(formal_args, actual_args):
             result = copy.copy(self.__eval_expr(actual_ast))
+            
+            result_type = None
+            if result.type() == Type.STRUCT:
+                result_type = result.struct_type()
+            else: 
+                result_type = result.type()
+            if formal_ast.get("var_type") != result_type:
+                super().error(
+                    ErrorType.TYPE_ERROR,
+                    f"Expected type {formal_ast.get('var_type')}, got {result_type}",
+                )
+            
             arg_name = formal_ast.get("name")
             args[arg_name] = result
 
@@ -188,7 +199,7 @@ class Interpreter(InterpreterBase):
         value = None
 
         if var_type in self.struct_name_to_ast:
-            value = create_value_from_type(Type.STRUCT)
+            value = create_value_from_type(Type.STRUCT, var_type)
         
         elif var_type == Type.INT:
             value = create_value_from_type(Type.INT)
@@ -223,7 +234,6 @@ class Interpreter(InterpreterBase):
                 super().error(ErrorType.NAME_ERROR, f"Undefined variable {var_name}")
             elif val == VariableError.FAULT_ERROR:
                 super().error(ErrorType.FAULT_ERROR, f"Attempt to access field of nil object")
-            
             return val
         if expr_ast.elem_type == InterpreterBase.FCALL_NODE:
             return self.__call_func(expr_ast)
@@ -243,9 +253,7 @@ class Interpreter(InterpreterBase):
                 if field_type in self.struct_name_to_ast:
                     field_type = Type.STRUCT
                 fields[field_name] = create_value_from_type(field_type)
-            
-            self.env.set(struct_name, Value(Type.STRUCT, fields))
-            return Value(Type.STRUCT, fields)
+            return Value(Type.STRUCT, fields, struct_name)
 
     def __eval_op(self, arith_ast):
         left_value_obj = self.__eval_expr(arith_ast.get("op1"))
@@ -425,254 +433,26 @@ class Interpreter(InterpreterBase):
 
 if __name__ == "__main__":
     program = """
-    func foo(a: int) : int {
-        print(a + 1);
-    }
-
-    func main() : void {
-        var temp: int;
-        print(temp);
-        temp = 5;
-        print(temp);
-    }
-    """
-    program = """
-    func foo(a:int, b:string, c:int, d:bool) : int {
-        print(b, d);
-        return a + c;
-    }
-
-    func talk_to(name:string) : void {
-        if (name == "Carey") {
-            print("Go away!");
-            return;  /* using return is OK w/void, just don't specify a value */
-        }
-        print("Greetings");
-    }
-
-    func main() : void {
-        print(foo(10, "blah", 20, false));
-        talk_to("Bonnie");
-    }
-    """
-
-    program = """
-    struct dog {
-        name: string;
-        vaccinated: bool;
-    }
-
-    func main() : void {
-        var a: int;
-        var d: dog;  /* d is an object reference whose value is nil */
-        print(a == 0);
-        print (d == nil);  /* prints true, because d was initialized to nil */
-    }
-    """
-
-    program = """
-    struct foo {
-    a:int;
-    b:bool;
-    c:string;
-    }
-
-    func main() : void {
-    var s1 : foo;
-
-    print(s1);
-
-    s1 = new foo;
-    print(s1.a);
-    print(s1.b);
-    print(s1.c);
-
-    s1.a = 10;
-    s1.b = true;
-    s1.c = "barf";
-    print(s1.a);
-    print(s1.b);
-    print(s1.c);
-    }
-    """
-
-    program = """
-    struct foo {
-        i:int;
-    }
-
-    struct bar {
-        f:foo;
-    }
-
-    func main() : void {
-        var b : bar;
-        b = new bar;
-        b.f = new foo;
-        b.f.i = 10;
-
-        print(b.f.i);
-    }
-    """
-
-    program = """
-struct flea {
-    age: int;
-    infected: bool;
-}
-
-struct dog {
-    name: string;
-    vaccinated: bool;
-    companion: flea;
-}
-
-func main() : void {
-    var d: dog;
-    d = new dog;  /* sets d object reference to point to a dog structure */
-    
-    print(d.vaccinated);  /* prints false - default bool value */
-    print(d.companion);  /* prints nil - default struct object reference */
-    
-    /* we may now set d's fields */
-    d.name = "Koda";
-    d.vaccinated = true;
-    d.companion = new flea;
-    d.companion.age = 3;
-}
-    """
-
-    program = """
-struct list {
-    val: int;
-    next: list;
-}
-
-func cons(val: int, l: list) : list {
-    var h: list;
-    h = new list;
-    h.val = val;
-    h.next = l;
-    return h;
-}
-
-func rev_app(l: list, a: list) : list {
-    if (l == nil) {
-        return a;
-    }
-
-    return rev_app(l.next, cons(l.val, a));
-}
-
-func reverse(l: list) : list {
-    var a: list;
-
-    return rev_app(l, a);
-}
-
-func print_list(l: list): void {
-    var x: list;
-    var n: int;
-    for (x = l; x != nil; x = x.next) {
-        print(x.val);
-        n = n + 1;
-    }
-    print("N=", n);
-}
-
-func main() : void {
-    var n: int;
-    var i: int;
-    var l: list;
-    var r: list;
-
-    n = inputi();
-    for (i = n; i; i = i - 1) {
-        var n: int;
-        n = inputi();
-        l = cons(n, l);
-    }
-    r = reverse(l);
-    print_list(r);
-}
-"""
-
-    program = """
-func main() : void {
-    print(5 || false);
-    var a:int;
-    a = 1;
-    if (a) {
-        print("if works on integers now!");
-    }
-    foo(a-1);
-}
-
-func foo(b : bool) : void {
-    print(b);
-}
-    """
-
-    program = """
-    func main() : void {
-        var b: bool;
-        b = foo() == nil;
-    }
-
-    func foo() : void {
-        var a: int;
-    }
-    """
-
-    program = """
-    struct s {
-        a:int;
-    }
-
-    func main() : int {
-        var x: s;
-        x = new s;
-        x = nil;
-        print(x.a);
-    }
-    """
-
-    program = """
 struct foo {
   a:int;
-  b:bool;
-  c:string;
 }
 
-func main() : void {
-  var s1 : foo;
-
-  print(s1);
-
-  s1 = new foo;
-  print(s1.a);
-  print(s1.b);
-  print(s1.c);
-
-  s1.a = 10;
-  s1.b = true;
-  s1.c = "barf";
-  print(s1.a);
-  print(s1.b);
-  print(s1.c);
+func main() : int {
+  var f: foo; 
+  f = new foo;
+  var ten: int;
+  ten = 10;
+  f.a = ten;
+  foo(f);
+  print(f.a);
+  print(ten);
 }
+
+func foo(x:foo) : void {
+  x.a = 20;
+}
+
+
     """
-
-    program = """
-    struct s {
-        a:int;
-    }
-
-    func main() : int {
-        var x: s;
-        x.a = 10; 
-    }
-    """
-
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
