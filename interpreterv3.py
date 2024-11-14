@@ -36,6 +36,7 @@ class Interpreter(InterpreterBase):
         self.env = EnvironmentManager()
         self.__call_func_aux("main", [])
 
+    # TODO: (Active) Support function return types
     def __set_up_function_table(self, ast):
         self.func_name_to_ast = {}
         for func_def in ast.get("functions"):
@@ -112,6 +113,7 @@ class Interpreter(InterpreterBase):
 
         func_ast = self.__get_func_by_name(func_name, len(actual_args))
         formal_args = func_ast.get("args")
+        expected_return_type = func_ast.get("return_type")
         if len(actual_args) != len(formal_args):
             super().error(
                 ErrorType.NAME_ERROR,
@@ -132,6 +134,16 @@ class Interpreter(InterpreterBase):
           self.env.create(arg_name, value)
         _, return_val = self.__run_statements(func_ast.get("statements"))
         self.env.pop_func()
+
+        # Check if the expected return value is VOID. If it is, check that the return value is NIL.
+        # If the return value IS NIL, then return VOID (since there is special handling). 
+        # Otherwise, throw an error.
+        if expected_return_type == InterpreterBase.VOID_DEF:
+            if return_val == Interpreter.NIL_VALUE:
+                return Type.VOID
+            else:
+                super().error(ErrorType.TYPE_ERROR, f"Expected return type {expected_return_type}, got {return_val.type()}")
+        
         return return_val
 
     def __call_print(self, args):
@@ -251,6 +263,11 @@ class Interpreter(InterpreterBase):
 
     def __compatible_types(self, oper, obj1, obj2):
         # DOCUMENT: allow comparisons ==/!= of anything against anything
+        if obj1 == Type.VOID or obj2 == Type.VOID:
+            super().error(
+                ErrorType.TYPE_ERROR,
+                "Cannot compare void types",
+            )
         if oper in ["==", "!="]:
             return True
         # I need to support comparisons of different types (int and bool), (bool and bool), (bool and int)
@@ -590,6 +607,17 @@ func main() : void {
 func foo(b : bool) : void {
     print(b);
 }
+    """
+
+    program = """
+    func main() : void {
+        var b: bool;
+        b = foo() == nil;
+    }
+
+    func foo() : void {
+        var a: int;
+    }
     """
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)

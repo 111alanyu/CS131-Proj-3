@@ -8,6 +8,7 @@ class Type:
     STRING = "string"
     NIL = "nil"
     STRUCT = "struct"
+    VOID = "void"
 
 
 # Represents a value, which has a type and its value
