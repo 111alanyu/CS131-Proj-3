@@ -4,7 +4,7 @@ import copy
 from enum import Enum
 
 from brewparse import parse_program
-from env_v3 import EnvironmentManager
+from env_v3 import EnvironmentManager, VariableError
 from intbase import InterpreterBase, ErrorType
 from type_valuev3 import Type, Value, create_value, get_printable, create_value_from_type
 
@@ -218,8 +218,11 @@ class Interpreter(InterpreterBase):
         if expr_ast.elem_type == InterpreterBase.VAR_NODE:
             var_name = expr_ast.get("name")
             val = self.env.get(var_name)
-            if val is None:
-                super().error(ErrorType.NAME_ERROR, f"Variable {var_name} not found")
+            if val == VariableError.NAME_ERROR:
+                super().error(ErrorType.NAME_ERROR, f"Undefined variable {var_name}")
+            elif val == VariableError.FAULT_ERROR:
+                super().error(ErrorType.FAULT_ERROR, f"Attempt to access field of nil object")
+            
             return val
         if expr_ast.elem_type == InterpreterBase.FCALL_NODE:
             return self.__call_func(expr_ast)
@@ -617,6 +620,19 @@ func foo(b : bool) : void {
 
     func foo() : void {
         var a: int;
+    }
+    """
+
+    program = """
+    struct s {
+        a:int;
+    }
+
+    func main() : int {
+        var x: s;
+        x = new s;
+        x = nil;
+        print(x.a);
     }
     """
     interpreter = Interpreter(trace_output=False)
