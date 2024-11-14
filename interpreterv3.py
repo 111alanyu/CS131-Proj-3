@@ -13,8 +13,6 @@ class ExecStatus(Enum):
     CONTINUE = 1
     RETURN = 2
 
-hard_code_num = str(5145672421)
-
 # Main interpreter class
 class Interpreter(InterpreterBase):
     # constants
@@ -176,7 +174,6 @@ class Interpreter(InterpreterBase):
             fields = {}
             for field_name, field_type in struct_def["fields"].items():
                 fields[field_name] = create_value_from_type(field_type)
-            fields["__CHANGED_HARD_CODE_" + hard_code_num] = False
             value = Value(Type.STRUCT, fields)
         elif var_type == Type.INT:
             value = create_value_from_type(Type.INT)
@@ -218,6 +215,17 @@ class Interpreter(InterpreterBase):
             return self.__eval_unary(expr_ast, Type.INT, lambda x: -1 * x)
         if expr_ast.elem_type == Interpreter.NOT_NODE:
             return self.__eval_unary(expr_ast, Type.BOOL, lambda x: not x)
+        if expr_ast.elem_type == Interpreter.NEW_NODE:
+            struct_name = expr_ast.get("var_type")
+            if struct_name not in self.struct_name_to_ast:
+                super().error(ErrorType.TYPE_ERROR, f"Unknown struct type {struct_name}")
+            struct_def = self.struct_name_to_ast[struct_name]
+            fields = {}
+            for field_name, field_type in struct_def["fields"].items():
+                fields[field_name] = create_value_from_type(field_type)
+            
+            self.env.create(struct_name, Value(Type.STRUCT, fields))
+            return Value(Type.STRUCT, fields)
 
     def __eval_op(self, arith_ast):
         left_value_obj = self.__eval_expr(arith_ast.get("op1"))
@@ -428,5 +436,30 @@ if __name__ == "__main__":
     }
     """
 
+    program = """
+    struct foo {
+    a:int;
+    b:bool;
+    c:string;
+    }
+
+    func main() : void {
+    var s1 : foo;
+
+    print(s1);
+
+    s1 = new foo;
+    print(s1.a);
+    print(s1.b);
+    print(s1.c);
+
+    s1.a = 10;
+    s1.b = true;
+    s1.c = "barf";
+    print(s1.a);
+    print(s1.b);
+    print(s1.c);
+    }
+    """
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
