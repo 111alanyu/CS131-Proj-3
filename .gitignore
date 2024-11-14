@@ -131,3 +131,14 @@ dmypy.json
 
 # mac stuff *shakes fist*
 .DS_Store
+
+v1/
+v2/
+v3/
+
+harness.py
+LICENSE
+results.json
+tester.py
+
+.gitignore

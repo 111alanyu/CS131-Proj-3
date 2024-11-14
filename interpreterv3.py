@@ -129,7 +129,7 @@ class Interpreter(InterpreterBase):
         self.env.push_func()
         # and add the formal arguments to the activation record
         for arg_name, value in args.items():
-          self.env.create(arg_name, value, Interpreter.NIL_VALUE)
+          self.env.create(arg_name, value)
         _, return_val = self.__run_statements(func_ast.get("statements"))
         self.env.pop_func()
         return return_val
@@ -253,7 +253,8 @@ class Interpreter(InterpreterBase):
         # DOCUMENT: allow comparisons ==/!= of anything against anything
         if oper in ["==", "!="]:
             return True
-        return obj1.type() == obj2.type()
+        # I need to support comparisons of different types (int and bool), (bool and bool), (bool and int)
+        return obj1.type() == obj2.type() or (obj1.type() == bool and obj2.type() == Type.INT) or (obj1.type() == Type.INT and obj2.type() == Type.BOOL)
 
     def __eval_unary(self, arith_ast, t, f):
         value_obj = self.__eval_expr(arith_ast.get("op1"))
@@ -297,6 +298,12 @@ class Interpreter(InterpreterBase):
         )
         self.op_to_lambda[Type.INT][">="] = lambda x, y: Value(
             Type.BOOL, x.value() >= y.value()
+        )
+        self.op_to_lambda[Type.INT]["||"] = lambda x, y: Value(
+            Type.BOOL, x.value() or y.value()
+        )
+        self.op_to_lambda[Type.INT]["&&"] = lambda x, y: Value(
+            Type.BOOL, x.value() and y.value()
         )
         #  set up operations on strings
         self.op_to_lambda[Type.STRING] = {}
@@ -345,11 +352,13 @@ class Interpreter(InterpreterBase):
     def __do_if(self, if_ast):
         cond_ast = if_ast.get("condition")
         result = self.__eval_expr(cond_ast)
-        if result.type() != Type.BOOL:
+        if result.type() != Type.BOOL and result.type() != Type.INT:
             super().error(
                 ErrorType.TYPE_ERROR,
                 "Incompatible type for if condition",
             )
+        if result.type() == Type.INT:
+            result = Value(Type.BOOL, result.value() != 0)
         if result.value():
             statements = if_ast.get("statements")
             status, return_val = self.__run_statements(statements)
@@ -483,6 +492,104 @@ if __name__ == "__main__":
 
         print(b.f.i);
     }
+    """
+
+    program = """
+struct flea {
+    age: int;
+    infected: bool;
+}
+
+struct dog {
+    name: string;
+    vaccinated: bool;
+    companion: flea;
+}
+
+func main() : void {
+    var d: dog;
+    d = new dog;  /* sets d object reference to point to a dog structure */
+    
+    print(d.vaccinated);  /* prints false - default bool value */
+    print(d.companion);  /* prints nil - default struct object reference */
+    
+    /* we may now set d's fields */
+    d.name = "Koda";
+    d.vaccinated = true;
+    d.companion = new flea;
+    d.companion.age = 3;
+}
+    """
+
+    program = """
+struct list {
+    val: int;
+    next: list;
+}
+
+func cons(val: int, l: list) : list {
+    var h: list;
+    h = new list;
+    h.val = val;
+    h.next = l;
+    return h;
+}
+
+func rev_app(l: list, a: list) : list {
+    if (l == nil) {
+        return a;
+    }
+
+    return rev_app(l.next, cons(l.val, a));
+}
+
+func reverse(l: list) : list {
+    var a: list;
+
+    return rev_app(l, a);
+}
+
+func print_list(l: list): void {
+    var x: list;
+    var n: int;
+    for (x = l; x != nil; x = x.next) {
+        print(x.val);
+        n = n + 1;
+    }
+    print("N=", n);
+}
+
+func main() : void {
+    var n: int;
+    var i: int;
+    var l: list;
+    var r: list;
+
+    n = inputi();
+    for (i = n; i; i = i - 1) {
+        var n: int;
+        n = inputi();
+        l = cons(n, l);
+    }
+    r = reverse(l);
+    print_list(r);
+}
+"""
+
+    program = """
+func main() : void {
+    print(5 || false);
+    var a:int;
+    a = 1;
+    if (a) {
+        print("if works on integers now!");
+    }
+    foo(a-1);
+}
+
+func foo(b : bool) : void {
+    print(b);
+}
     """
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
