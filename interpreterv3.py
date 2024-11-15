@@ -211,11 +211,13 @@ class Interpreter(InterpreterBase):
         assign_variable_type = assign_variable.type()
 
         # TODO: This feels wrong. But the struct error should be caught by the if statement on 208
-        if assign_variable_type != value_type and (assign_variable_type != Type.STRUCT):
+        if assign_variable_type != value_type and (assign_variable_type != Type.STRUCT) and not (assign_variable_type == Type.BOOL and value_type == Type.INT):
             super().error(
                 ErrorType.TYPE_ERROR,
                 f"Expected type {assign_variable_type}, got {value_obj.type()}",
             )
+        if assign_variable_type == Type.BOOL and value_type == Type.INT:
+            value_obj = Value(Type.BOOL, value_obj.value() != 0)
 
         ret = self.env.set(var_name, value_obj)
         if ret == VariableError.NAME_ERROR:
@@ -471,134 +473,71 @@ class Interpreter(InterpreterBase):
 if __name__ == "__main__":
 
     program = """
-struct s {
-  a:int;
+func foo(a:int, b:string, c:int, d:bool) : int {
+  print(b, d);
+  return a + c;
 }
 
-func main() : int {
-  var x: s;
-  x.a = 10; 
+func talk_to(name:string): void {
+  if (name == "Carey") {
+     print("Go away!");
+     return;  /* using return is OK w/void, just don't specify a value */
+  }
+  print("Greetings");
 }
 
+func main() : void {
+  print(foo(10, "blah", 20, false));
+  talk_to("Bonnie");
+}
     """
     program = """
-struct foo {
-  i:int;
+func foo(a:int, b:string, c:int, d:bool) : int {
+  print(b, d);
+  return a + c;
 }
 
-struct bar {
-  f:foo;
+func talk_to(name:string): void {
+  if (name == "Carey") {
+     print("Go away!");
+     return;  /* using return is OK w/void, just don't specify a value */
+  }
+  print("Greetings");
 }
 
 func main() : void {
-  var b : bar;
-  b = new bar;
-  b.f = new foo;
-  b.f.i = 10;
-
-  print(b.f.i);
+  print(foo(10, "blah", 20, false));
+  talk_to("Bonnie");
+  talk_to(false);
 }
-
 """
     program = """
-struct list {
-    val: int;
-    next: list;
-}
-
-func cons(val: int, l: list) : list {
-    var h: list;
-    h = new list;
-    h.val = val;
-    h.next = l;
-    return h;
-}
-
-func rev_app(l: list, a: list) : list {
-    if (l == nil) {
-        return a;
+func main() : void {
+	/*coercion and then use it later*/
+	var my_int : int;
+	my_int = 5;
+    if (my_int || false) {
+      print("this should print");
     }
-
-    return rev_app(l.next, cons(l.val, a));
-}
-
-func reverse(l: list) : list {
-    var a: list;
-
-    return rev_app(l, a);
-}
-
-func print_list(l: list): void {
-    var x: list;
-    var n: int;
-    for (x = l; x != nil; x = x.next) {
-        print(x.val);
-        n = n + 1;
-    }
-    print("N=", n);
-}
-
-func main() : void {
-    var n: int;
-    var i: int;
-    var l: list;
-    var r: list;
-
-    n = inputi();
-    for (i = n; i; i = i - 1) {
-        var n: int;
-        n = inputi();
-        l = cons(n, l);
-    }
-    r = reverse(l);
-    print_list(r);
-}
-
-"""
-    program = """
-func main() : void {
-	var my_str: string;
-    my_str = false;
-    print("WE SHOULD NOT SEE THIS PRINT");
+    print("what is my_int?");
+    print(my_int);
 }
 """
     program = """
-func bar() : int {
-  return;  /* no return value specified - returns 0 */
-}
-
-func bletch() : bool {
-  print("hi");
-  /* no explicit return; bletch must return default bool of false */
-}
-
-func boing() : string {
-  return;  /* returns "" */
-}
-
 func main() : void {
-   var val: int;
-   val = bar();
-   print(val);  /* prints 0 */
-   print(bletch()); /* prints false */
-   print(boing()); /* prints nil */
+	var my_bool: bool;
+    print("my_bool default is: ");
+    print(my_bool);
+    my_bool = true;
+    print("Success, my_bool set to: ");
+    print(my_bool);
+    my_bool = 0;
+    print("Successful coercion. After setting bool to 0, my_bool is: ");
+    print(my_bool);
+    my_bool = 6;
+    print("Successful coercion. After setting bool to 6, my_bool is: ");
+    print(my_bool);
 }
-"""
-
-    program = """
-func main() : void {
-  returns_string();
-}
-
-func returns_string() : string {
-  return returns_int();
-}
-
-func returns_int() : int {
-  return;
-}
-
-
-"""
-    interpreter = Interpreter(trace_output=True)
+    """
+    interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
