@@ -17,6 +17,7 @@ class EnvironmentManager:
             for env in reversed(cur_func_env):
                 if struct_name in env:
                     struct = env[struct_name].value()
+                    # print("Paris", struct)
                     if not isinstance(struct, dict):
                         return VariableError.FAULT_ERROR
                     if field_name in struct:

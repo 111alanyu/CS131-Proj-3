@@ -123,7 +123,6 @@ class Interpreter(InterpreterBase):
         args = {}
         for formal_ast, actual_ast in zip(formal_args, actual_args):
             result = copy.copy(self.__eval_expr(actual_ast))
-            
             result_type = None
             if result.type() == Type.STRUCT:
                 result_type = result.struct_type()
@@ -154,7 +153,17 @@ class Interpreter(InterpreterBase):
                 return Type.VOID
             else:
                 super().error(ErrorType.TYPE_ERROR, f"Expected return type {expected_return_type}, got {return_val.type()}")
+
+        if expected_return_type == Type.INT and return_val.type() == Type.NIL:
+            return Value(Type.INT, 0)
+        if expected_return_type == Type.STRING and return_val.type() == Type.NIL:
+            return Value(Type.STRING, "")
+        if expected_return_type == Type.BOOL and return_val.type() == Type.NIL:
+            return Value(Type.BOOL, False)
         
+        print("return type", return_val.value(), return_val.type())
+        # If the expected return value is not VOID, then check that the return value is of the expected type.
+
         return return_val
 
     def __call_print(self, args):
@@ -250,7 +259,9 @@ class Interpreter(InterpreterBase):
             return Value(Type.BOOL, expr_ast.get("val"))
         if expr_ast.elem_type == InterpreterBase.VAR_NODE:
             var_name = expr_ast.get("name")
+            # print("London", var_name)
             val = self.env.get(var_name)
+            # print("Moscow", val)
             if val == VariableError.NAME_ERROR:
                 super().error(ErrorType.NAME_ERROR, f"Undefined variable {var_name}")
             elif val == VariableError.FAULT_ERROR:
@@ -430,7 +441,7 @@ class Interpreter(InterpreterBase):
         run_for = Interpreter.TRUE_VALUE
         while run_for.value():
             run_for = self.__eval_expr(cond_ast)  # check for-loop condition
-            if run_for.type() != Type.BOOL:
+            if run_for.type() != Type.BOOL and run_for.type() != Type.INT:
                 super().error(
                     ErrorType.TYPE_ERROR,
                     "Incompatible type for for condition",
@@ -484,5 +495,90 @@ func main() : void {
 }
 
 """
-    interpreter = Interpreter(trace_output=True)
+    program = """
+struct list {
+    val: int;
+    next: list;
+}
+
+func cons(val: int, l: list) : list {
+    var h: list;
+    h = new list;
+    h.val = val;
+    h.next = l;
+    return h;
+}
+
+func rev_app(l: list, a: list) : list {
+    if (l == nil) {
+        return a;
+    }
+
+    return rev_app(l.next, cons(l.val, a));
+}
+
+func reverse(l: list) : list {
+    var a: list;
+
+    return rev_app(l, a);
+}
+
+func print_list(l: list): void {
+    var x: list;
+    var n: int;
+    for (x = l; x != nil; x = x.next) {
+        print(x.val);
+        n = n + 1;
+    }
+    print("N=", n);
+}
+
+func main() : void {
+    var n: int;
+    var i: int;
+    var l: list;
+    var r: list;
+
+    n = inputi();
+    for (i = n; i; i = i - 1) {
+        var n: int;
+        n = inputi();
+        l = cons(n, l);
+    }
+    r = reverse(l);
+    print_list(r);
+}
+
+"""
+    program = """
+func main() : void {
+	var my_str: string;
+    my_str = false;
+    print("WE SHOULD NOT SEE THIS PRINT");
+}
+"""
+    program = """
+func bar() : int {
+  return;  /* no return value specified - returns 0 */
+}
+
+func bletch() : bool {
+  print("hi");
+  /* no explicit return; bletch must return default bool of false */
+}
+
+func boing() : string {
+  return;  /* returns "" */
+}
+
+func main() : void {
+   var val: int;
+   val = bar();
+   print(val);  /* prints 0 */
+   print(bletch()); /* prints false */
+   print(boing()); /* prints nil */
+}
+"""
+
+    interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
