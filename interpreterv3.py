@@ -161,7 +161,12 @@ class Interpreter(InterpreterBase):
         if expected_return_type == Type.BOOL and return_val.type() == Type.NIL:
             return Value(Type.BOOL, False)
         
-        print("return type", return_val.value(), return_val.type())
+        if expected_return_type != return_val.type():
+            super().error(
+                ErrorType.TYPE_ERROR,
+                f"Expected return type {expected_return_type}, got {return_val.type()}",
+            )
+
         # If the expected return value is not VOID, then check that the return value is of the expected type.
 
         return return_val
@@ -580,5 +585,20 @@ func main() : void {
 }
 """
 
-    interpreter = Interpreter(trace_output=False)
+    program = """
+func main() : void {
+  returns_string();
+}
+
+func returns_string() : string {
+  return returns_int();
+}
+
+func returns_int() : int {
+  return;
+}
+
+
+"""
+    interpreter = Interpreter(trace_output=True)
     interpreter.run(program)
