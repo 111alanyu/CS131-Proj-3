@@ -182,6 +182,27 @@ class Interpreter(InterpreterBase):
     def __assign(self, assign_ast):
         var_name = assign_ast.get("name")
         value_obj = self.__eval_expr(assign_ast.get("expression"))
+        value_type = value_obj.type()
+        assign_variable = self.env.get(var_name)
+
+        # Handle the case where the variable is a field of a struct and it is not initalized
+        if assign_variable == VariableError.NAME_ERROR:
+            super().error(
+                ErrorType.NAME_ERROR, f"Undefined variable {var_name} in assignment"
+            )
+        elif assign_variable == VariableError.FAULT_ERROR:
+            super().error(
+                ErrorType.FAULT_ERROR, f"Attempt to access field of nil object"
+            )
+        assign_variable_type = assign_variable.type()
+
+        # TODO: This feels wrong. But the struct error should be caught by the if statement on 208
+        if assign_variable_type != value_type and (assign_variable_type != Type.STRUCT):
+            super().error(
+                ErrorType.TYPE_ERROR,
+                f"Expected type {assign_variable_type}, got {value_obj.type()}",
+            )
+
         ret = self.env.set(var_name, value_obj)
         if ret == VariableError.NAME_ERROR:
             super().error(
@@ -432,27 +453,36 @@ class Interpreter(InterpreterBase):
 
 
 if __name__ == "__main__":
+
     program = """
-struct foo {
+struct s {
   a:int;
 }
 
 func main() : int {
-  var f: foo; 
-  f = new foo;
-  var ten: int;
-  ten = 10;
-  f.a = ten;
-  foo(f);
-  print(f.a);
-  print(ten);
+  var x: s;
+  x.a = 10; 
 }
-
-func foo(x:foo) : void {
-  x.a = 20;
-}
-
 
     """
-    interpreter = Interpreter(trace_output=False)
+    program = """
+struct foo {
+  i:int;
+}
+
+struct bar {
+  f:foo;
+}
+
+func main() : void {
+  var b : bar;
+  b = new bar;
+  b.f = new foo;
+  b.f.i = 10;
+
+  print(b.f.i);
+}
+
+"""
+    interpreter = Interpreter(trace_output=True)
     interpreter.run(program)

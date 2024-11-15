@@ -21,7 +21,7 @@ class EnvironmentManager:
                         return VariableError.FAULT_ERROR
                     if field_name in struct:
                         return struct[field_name]
-            return VariableError.NAME_ERROR
+            return VariableError.FAULT_ERROR
         else:
             for env in reversed(cur_func_env):
                 if symbol in env:
