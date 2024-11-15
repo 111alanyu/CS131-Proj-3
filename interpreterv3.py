@@ -491,53 +491,5 @@ func main() : void {
   talk_to("Bonnie");
 }
     """
-    program = """
-func foo(a:int, b:string, c:int, d:bool) : int {
-  print(b, d);
-  return a + c;
-}
-
-func talk_to(name:string): void {
-  if (name == "Carey") {
-     print("Go away!");
-     return;  /* using return is OK w/void, just don't specify a value */
-  }
-  print("Greetings");
-}
-
-func main() : void {
-  print(foo(10, "blah", 20, false));
-  talk_to("Bonnie");
-  talk_to(false);
-}
-"""
-    program = """
-func main() : void {
-	/*coercion and then use it later*/
-	var my_int : int;
-	my_int = 5;
-    if (my_int || false) {
-      print("this should print");
-    }
-    print("what is my_int?");
-    print(my_int);
-}
-"""
-    program = """
-func main() : void {
-	var my_bool: bool;
-    print("my_bool default is: ");
-    print(my_bool);
-    my_bool = true;
-    print("Success, my_bool set to: ");
-    print(my_bool);
-    my_bool = 0;
-    print("Successful coercion. After setting bool to 0, my_bool is: ");
-    print(my_bool);
-    my_bool = 6;
-    print("Successful coercion. After setting bool to 6, my_bool is: ");
-    print(my_bool);
-}
-    """
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
