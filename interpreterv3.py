@@ -161,7 +161,8 @@ class Interpreter(InterpreterBase):
         if expected_return_type == Type.BOOL and return_val.type() == Type.NIL:
             return Value(Type.BOOL, False)
         
-        if expected_return_type != return_val.type():
+
+        if expected_return_type != return_val.type() and not (return_val.type() == Type.STRUCT and return_val.struct_type() == expected_return_type):
             super().error(
                 ErrorType.TYPE_ERROR,
                 f"Expected return type {expected_return_type}, got {return_val.type()}",
@@ -266,9 +267,7 @@ class Interpreter(InterpreterBase):
             return Value(Type.BOOL, expr_ast.get("val"))
         if expr_ast.elem_type == InterpreterBase.VAR_NODE:
             var_name = expr_ast.get("name")
-            # print("London", var_name)
             val = self.env.get(var_name)
-            # print("Moscow", val)
             if val == VariableError.NAME_ERROR:
                 super().error(ErrorType.NAME_ERROR, f"Undefined variable {var_name}")
             elif val == VariableError.FAULT_ERROR:
@@ -491,5 +490,89 @@ func main() : void {
   talk_to("Bonnie");
 }
     """
-    interpreter = Interpreter(trace_output=False)
+    program = """
+func main() : void {
+	print("hello world");
+	var eyeballs: int;
+    eyeballs = 5;
+    var eyeballs: string;
+}
+"""
+    program = """
+func main() : void {
+  var n : int;
+  n = inputi("Enter a number:");
+  print(fact(n));
+}
+
+func fact(n : int) : int {
+  if (n <= 1) { return 1; }
+  return n * fact(n-1);
+}
+"""
+
+    program = """
+struct flea {
+  age: int;
+  infected : bool;
+}
+
+struct dog {
+  name: string;
+  vaccinated: bool;  
+  companion: flea;
+}
+
+func main() : void {
+  var d: dog;     
+  d = new dog;   /* sets d object reference to point to a dog structure */
+
+  print(d.vaccinated); /* prints false - default bool value */
+  print(d.companion); /* prints nil - default struct object reference */
+
+  /* we may now set d's fields */
+  d.name = "Koda";
+  d.vaccinated = true;
+  d.companion = new flea;
+  d.companion.age = 3; 
+    
+  print(d.name);
+  print(d.vaccinated);
+  print(d.companion.age);
+  print(d.companion.infected);
+}
+"""
+    program = """
+struct dog {
+ bark: int;
+ bite: int;
+}
+
+func foo(d: dog) : dog {  /* d holds the same object reference that the koda variable holds */
+  d.bark = 10;
+  return d;  		/* this returns the same object reference that the koda variable holds */
+}
+
+ func main() : void {
+  var koda: dog;
+  var kippy: dog;
+  koda = new dog;
+  kippy = foo(koda);	/* kippy holds the same object reference as koda */
+  kippy.bite = 20;
+  print(koda.bark, " ", koda.bite); /* prints 10 20 */
+}
+
+"""
+    program = """
+struct s {
+  a:int;
+}
+
+func main() : int {
+  var x: s;
+  x.a = 10; 
+}
+
+    """
+    interpreter = Interpreter(trace_output=True)
     interpreter.run(program)

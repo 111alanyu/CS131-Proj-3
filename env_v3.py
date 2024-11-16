@@ -8,50 +8,113 @@ class EnvironmentManager:
         self.environment = []
 
     # We can define an error object here
+
+    """
+    1. Get variable from top level environment
+    2. Get variable from strcut (the variable is defined in the struct)
+    3. Get variable from struct in struct ... (here, the variable IS DEFINED IN THE STRUCT, no top level varialb)
+    
+    TODO: I need to recode this. Weill do tmr. 
+    """
+    # TODO: need to re-write this for struct of structs
+
     def get(self, symbol):
         cur_func_env = self.environment[-1]
         var_name = symbol.split(".")
-        if len(var_name) > 1:
+        # 1. This is just a variable in a top level environment
+        if len(var_name) == 0:
+            print("ERROR!", symbol)
+        elif len(var_name) == 1:
+            for env in reversed(cur_func_env):
+                if symbol in env:
+                    return env[symbol]
+            return VariableError.NAME_ERROR
+        
+        # 2. This is a variable in a struct
+        elif len(var_name) == 2:
             struct_name = var_name[0]
             field_name = var_name[1]
             for env in reversed(cur_func_env):
                 if struct_name in env:
                     struct = env[struct_name].value()
-                    # print("Paris", struct)
                     if not isinstance(struct, dict):
                         return VariableError.FAULT_ERROR
                     if field_name in struct:
                         return struct[field_name]
-            return VariableError.FAULT_ERROR
+                    return VariableError.FAULT_ERROR
+            return VariableError.NAME_ERROR
         else:
+            struct_name = var_name[0]
+            field_name = var_name[1]
+            # Find the struct in the environment
             for env in reversed(cur_func_env):
-                if symbol in env:
-                    return env[symbol]
+                # we found the struct, so let's find the field now
+                if struct_name in env:
+                    struct = env[struct_name].value()
+                    var_name.pop(0)
+                    while len(var_name) >= 1:
+                        if not isinstance(struct, dict):
+                            return VariableError.FAULT_ERROR
+                        if field_name in struct:
+                            value = struct[field_name]
+                            if len(var_name) == 1:
+                                return value
+                            struct = value.value()
+                            var_name.pop(0)
+                            field_name = var_name[0]
             return VariableError.NAME_ERROR
 
+
+
     def set(self, symbol, value):
-        symbol_name = symbol.split(".")
-        if len(symbol_name) > 1:
-            struct_name = symbol_name[0]
-            field_name = symbol_name[1]
-            cur_func_env = self.environment[-1]
-            for env in reversed(cur_func_env):
-                if struct_name in env:
-                    if env[struct_name] == None: 
-                        return VariableError.FAULT_ERROR
-                    struct = env[struct_name].value()
-                    if field_name in struct:
-                        struct[field_name] = value
-                        return True
-            return VariableError.FAULT_ERROR
-        else:
-            cur_func_env = self.environment[-1]
+        cur_func_env = self.environment[-1]
+        var_name = symbol.split(".")
+        # 1. This is just a variable in a top level environment
+        if len(var_name) == 0:
+            print("ERROR!", symbol)
+        elif len(var_name) == 1:
             for env in reversed(cur_func_env):
                 if symbol in env:
                     env[symbol] = value
-                    return True
-            
+                    return
             return VariableError.NAME_ERROR
+        
+        # 2. This is a variable in a struct
+        elif len(var_name) == 2:
+            struct_name = var_name[0]
+            field_name = var_name[1]
+            for env in reversed(cur_func_env):
+                if struct_name in env:
+                    struct = env[struct_name].value()
+                    if not isinstance(struct, dict):
+                        return VariableError.FAULT_ERROR
+                    if field_name in struct:
+                        struct[field_name] = value
+                        return
+                    return VariableError.FAULT_ERROR
+            return VariableError.NAME_ERROR
+        
+        else:
+            struct_name = var_name[0]
+            field_name = var_name[1]
+            # Find the struct in the environment
+            for env in reversed(cur_func_env):
+                # we found the struct, so let's find the field now
+                if struct_name in env:
+                    struct = env[struct_name].value()
+                    var_name.pop(0)
+                    while len(var_name) >= 1:
+                        if not isinstance(struct, dict):
+                            return VariableError.FAULT_ERROR
+                        if field_name in struct:
+                            if len(var_name) == 1:
+                                struct[field_name] = value
+                                return
+                            var_name.pop(0)
+                            struct = struct[field_name].value()
+                            field_name = var_name[0]
+            return VariableError.NAME_ERROR
+                            
 
     # create a new symbol in the top-most environment, regardless of whether that symbol exists
     # in a lower environment
