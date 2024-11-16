@@ -232,7 +232,7 @@ class Interpreter(InterpreterBase):
         assign_variable_type = assign_variable.type()
 
         # TODO: This feels wrong. But the struct error should be caught by the if statement on 208
-        if assign_variable_type != value_type and (assign_variable_type != Type.STRUCT) and not (assign_variable_type == Type.BOOL and value_type == Type.INT):
+        if assign_variable_type != value_type and (assign_variable_type != Type.STRUCT) and not (assign_variable_type == Type.BOOL and value_type == Type.INT) and not (assign_variable_type == Type.NIL and value_type == Type.STRUCT):
             super().error(
                 ErrorType.TYPE_ERROR,
                 f"Expected type {assign_variable_type}, got {value_obj.type()}",
@@ -613,5 +613,5 @@ func main(): void {
     return;
 }
     """
-    interpreter = Interpreter(trace_output=True)
+    interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
