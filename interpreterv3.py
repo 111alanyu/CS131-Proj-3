@@ -320,17 +320,47 @@ class Interpreter(InterpreterBase):
 
     def __compatible_types(self, oper, obj1, obj2):
         # DOCUMENT: allow comparisons ==/!= of anything against anything
+        
+        # TODO: Should I just return false here? 
         if obj1 == Type.VOID or obj2 == Type.VOID:
             super().error(
                 ErrorType.TYPE_ERROR,
                 "Cannot compare void types",
             )
-        if obj1.type() == Type.STRUCT and obj2.type() == Type.STRUCT:
-            return True
-        if oper in ["==", "!="]:
-            return True
-        # I need to support comparisons of different types (int and bool), (bool and bool), (bool and int)
-        return obj1.type() == obj2.type() or (obj1.type() == bool and obj2.type() == Type.INT) or (obj1.type() == Type.INT and obj2.type() == Type.BOOL)
+
+        obj1_type = obj1.type()
+        obj2_type = obj2.type()
+        if oper == "==" or oper == "!=":
+            # Ints can be compared to other ints and bools (coercision)
+            if (obj1_type == Type.INT and obj2_type == Type.BOOL) or (obj1_type == Type.INT and obj2_type == Type.INT):
+                return True
+            # Strings can be compared to other strings
+            if (obj1_type == Type.STRING) and (obj2_type == Type.STRING):
+                return True
+            # Bools can be compared to other bools and ints (coercision)
+            if (obj1_type == Type.BOOL and obj2_type == Type.BOOL) or (obj1_type == Type.BOOL and obj2_type == Type.INT):
+                return True
+            # Structs can be compared to other structs and nil
+            if (obj1_type == Type.STRUCT and obj2_type == Type.STRUCT) or (obj1_type == Type.STRUCT and obj2_type == Type.NIL):
+                return True
+            # Nil can be compared to nil and structs
+            if (obj1_type == Type.NIL and obj2_type == Type.NIL) or (obj1_type == Type.NIL and obj2_type == Type.STRUCT):
+                return True
+            return False
+
+        if oper == "&&" or oper == "||":
+            if (obj1_type == Type.BOOL and obj2_type == Type.BOOL) or (obj1_type == Type.BOOL and obj2_type == Type.INT) or\
+                  (obj1_type == Type.INT and obj2_type == Type.BOOL) or (obj1_type == Type.INT and obj2_type == Type.INT):
+                return True
+            return False
+        
+        if oper in ["<", "<=", ">", ">=", "+", "-", "*", "/"]:
+            if obj1_type == Type.INT and obj2_type == Type.INT:
+                return True
+            return False
+        
+        return False
+    
 
     def __eval_unary(self, arith_ast, t, f):
         value_obj = self.__eval_expr(arith_ast.get("op1"))
@@ -490,26 +520,21 @@ class Interpreter(InterpreterBase):
 
 if __name__ == "__main__":
     program = """
-struct Person {
-    name: string;
-    age: int;
+struct Node {
+    value: int;
 }
 
 func main() : void {
-    var p1: Person;
-    var p2: Person;
+    var n1: Node;
 
-    p1 = new Person;
-    p2 = new Person;
+    n1 = new Node;
 
-    print(p1 == p2);
-    print(p1 != p2);
+    print(n1 == 0);
 
-    p2 = p1;
-    print(p1 == p2);
-    print(p1 != p2);
+    var n2: Node;
+    n2 = new Node;
+    print(n1 == n2);
 }
-
 """
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
