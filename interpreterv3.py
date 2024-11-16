@@ -323,10 +323,7 @@ class Interpreter(InterpreterBase):
         
         # TODO: Should I just return false here? 
         if obj1 == Type.VOID or obj2 == Type.VOID:
-            super().error(
-                ErrorType.TYPE_ERROR,
-                "Cannot compare void types",
-            )
+            return False
 
         obj1_type = obj1.type()
         obj2_type = obj2.type()
@@ -388,10 +385,13 @@ class Interpreter(InterpreterBase):
             x.type(), x.value() // y.value()
         )
         self.op_to_lambda[Type.INT]["=="] = lambda x, y: Value(
-            Type.BOOL, x.type() == y.type() and x.value() == y.value()
+            Type.BOOL, x.type() == y.type() and x.value() == y.value()\
+                or (y.type() == Type.BOOL and (x.value() != 0) == y.value())
         )
         self.op_to_lambda[Type.INT]["!="] = lambda x, y: Value(
-            Type.BOOL, x.type() != y.type() or x.value() != y.value()
+            Type.BOOL, x.type() != y.type() or x.value() != y.value() \
+                or (y.type() == Type.BOOL and (x.value() != 0) != y.value())
+
         )
         self.op_to_lambda[Type.INT]["<"] = lambda x, y: Value(
             Type.BOOL, x.value() < y.value()
@@ -431,10 +431,12 @@ class Interpreter(InterpreterBase):
             x.type(), x.value() or y.value()
         )
         self.op_to_lambda[Type.BOOL]["=="] = lambda x, y: Value(
-            Type.BOOL, x.type() == y.type() and x.value() == y.value()
+            Type.BOOL, x.type() == y.type() and x.value() == y.value() \
+            or (y.type() == Type.INT and x.value() == (y.value() != 0) )
         )
         self.op_to_lambda[Type.BOOL]["!="] = lambda x, y: Value(
-            Type.BOOL, x.type() != y.type() or x.value() != y.value()
+            Type.BOOL, x.type() != y.type() or x.value() != y.value() \
+            or (y.type() == Type.INT and x.value() != (y.value() != 0) )
         )
 
         #  set up operations on nil
@@ -520,20 +522,22 @@ class Interpreter(InterpreterBase):
 
 if __name__ == "__main__":
     program = """
-struct Node {
-    value: int;
-}
-
 func main() : void {
-    var n1: Node;
+    var b: bool;
+    var n: int;
 
-    n1 = new Node;
+    n = 5;
+    b = n;   /* Coerce int to bool (non-zero becomes true) */
+    print(b);   /* true */
 
-    print(n1 == 0);
+    n = 0;
+    b = n;   /* Coerce int to bool (0 becomes false) */
+    print(b);   /* false */
 
-    var n2: Node;
-    n2 = new Node;
-    print(n1 == n2);
+    print(1 && 0);   /* false */
+    print(1 || 0);   /* true */
+    print(5 == true);   /* true */
+    print(0 == false);   /* true */
 }
 """
     interpreter = Interpreter(trace_output=False)
