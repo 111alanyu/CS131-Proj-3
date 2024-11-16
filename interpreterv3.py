@@ -325,6 +325,8 @@ class Interpreter(InterpreterBase):
                 ErrorType.TYPE_ERROR,
                 "Cannot compare void types",
             )
+        if obj1.type() == Type.STRUCT and obj2.type() == Type.STRUCT:
+            return True
         if oper in ["==", "!="]:
             return True
         # I need to support comparisons of different types (int and bool), (bool and bool), (bool and int)
@@ -417,10 +419,10 @@ class Interpreter(InterpreterBase):
         #  set up operations on structs 
         self.op_to_lambda[Type.STRUCT] = {}
         self.op_to_lambda[Type.STRUCT]["=="] = lambda x, y: Value(
-            Type.BOOL, y.type() == Type.NIL and len(x.value()) == 0
+            Type.BOOL, x.value() is y.value() or (y.type() == Type.NIL and x.value() == {})
         )
         self.op_to_lambda[Type.STRUCT]["!="] = lambda x, y: Value(
-            Type.BOOL, y.type() != Type.NIL or (type(x.value()) == dict and  len(x.value()) != 0)
+            Type.BOOL, x.value() is not y.value() or (y.type() == Type.NIL and x.value() != {})
         )
 
         # TODO: This should error out
@@ -487,6 +489,27 @@ class Interpreter(InterpreterBase):
 
 
 if __name__ == "__main__":
-    program = """"""
+    program = """
+struct Person {
+    name: string;
+    age: int;
+}
+
+func main() : void {
+    var p1: Person;
+    var p2: Person;
+
+    p1 = new Person;
+    p2 = new Person;
+
+    print(p1 == p2);
+    print(p1 != p2);
+
+    p2 = p1;
+    print(p1 == p2);
+    print(p1 != p2);
+}
+
+"""
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
