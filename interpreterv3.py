@@ -44,6 +44,12 @@ class Interpreter(InterpreterBase):
             if func_name not in self.func_name_to_ast:
                 self.func_name_to_ast[func_name] = {}
             self.func_name_to_ast[func_name][num_params] = func_def
+            if func_def.get("return_type") not in self.struct_name_to_ast and func_def.get("return_type") not in [Type.INT, Type.STRING, Type.BOOL, Type.VOID]:
+                super().error(ErrorType.TYPE_ERROR, f"Unknown return type {func_def.get('return_type')}")
+            func_args = func_def.get("args")
+            for arg in func_args:
+                if arg.get("var_type") not in self.struct_name_to_ast and arg.get("var_type") not in [Type.INT, Type.STRING, Type.BOOL]:
+                    super().error(ErrorType.TYPE_ERROR, f"Unknown argument type {arg.get('var_type')}")
 
     def __get_func_by_name(self, name, num_params):
         if name not in self.func_name_to_ast:
@@ -130,8 +136,9 @@ class Interpreter(InterpreterBase):
                 result_type = result.type()
             if formal_ast.get("var_type") != result_type:
                 if formal_ast.get("var_type") == Type.BOOL and result_type == Type.INT:
-                    print("result.value(): ", result.value())
                     result = Value(Type.BOOL, result.value() != 0)
+                elif formal_ast.get("var_type") in self.struct_name_to_ast and result_type == Type.NIL:
+                    pass
                 else:
                     super().error(
                         ErrorType.TYPE_ERROR,
@@ -157,24 +164,27 @@ class Interpreter(InterpreterBase):
                 return Type.VOID
             else:
                 super().error(ErrorType.TYPE_ERROR, f"Expected return type {expected_return_type}, got {return_val.type()}")
-
+        print("EXPECTED RETURN TYPE", expected_return_type)
         if expected_return_type == Type.INT and return_val.type() == Type.NIL:
             return Value(Type.INT, 0)
-        if expected_return_type == Type.STRING and return_val.type() == Type.NIL:
+        elif expected_return_type == Type.STRING and return_val.type() == Type.NIL:
             return Value(Type.STRING, "")
-        if expected_return_type == Type.BOOL and return_val.type() == Type.NIL:
+        elif expected_return_type == Type.BOOL and return_val.type() == Type.NIL:
             return Value(Type.BOOL, False)
-        if expected_return_type == Type.BOOL and return_val.type() == Type.INT:
+        elif expected_return_type == Type.BOOL and return_val.type() == Type.INT:
             return Value(Type.BOOL, return_val.value() != 0)
-        if expected_return_type in self.struct_name_to_ast and return_val.type() == Type.NIL:
+        elif expected_return_type in self.struct_name_to_ast and return_val.type() == Type.NIL:
             return Value(Type.NIL, create_value_from_type(Type.NIL))
-
-        if expected_return_type != return_val.type() and not (return_val.type() == Type.STRUCT and return_val.struct_type() == expected_return_type):
+        elif expected_return_type != return_val.type() and not (return_val.type() == Type.STRUCT and return_val.struct_type() == expected_return_type):
             super().error(
                 ErrorType.TYPE_ERROR,
                 f"Expected return type {expected_return_type}, got {return_val.type()}",
             )
-
+        elif expected_return_type not in self.struct_name_to_ast and return_val.type() == Type.STRUCT:
+            super().error(
+                ErrorType.TYPE_ERROR,
+                f"Expected return type {expected_return_type}, got {return_val.type()}",
+            )
         # If the expected return value is not VOID, then check that the return value is of the expected type.
 
         return return_val
@@ -279,15 +289,17 @@ class Interpreter(InterpreterBase):
                 super().error(ErrorType.NAME_ERROR, f"Undefined variable {var_name}")
             elif val == VariableError.FAULT_ERROR:
                 super().error(ErrorType.FAULT_ERROR, f"Attempt to access field of nil object")
+            elif val == VariableError.TYPE_ERROR:
+                super().error(ErrorType.TYPE_ERROR, f"Attempt to access field of non-struct object")
             return val
         if expr_ast.elem_type == InterpreterBase.FCALL_NODE:
             return self.__call_func(expr_ast)
         if expr_ast.elem_type in Interpreter.BIN_OPS:
             return self.__eval_op(expr_ast)
         if expr_ast.elem_type == Interpreter.NEG_NODE:
-            return self.__eval_unary(expr_ast, Type.INT, lambda x: -1 * x)
+            return self.__eval_neg_unary(expr_ast, Type.INT, lambda x: -1 * x)
         if expr_ast.elem_type == Interpreter.NOT_NODE:
-            return self.__eval_unary(expr_ast, Type.BOOL, lambda x: not x)
+            return self.__eval_not_unary(expr_ast, [Type.BOOL, Type.INT], lambda x: not x)
         if expr_ast.elem_type == Interpreter.NEW_NODE:
             struct_name = expr_ast.get("var_type")
             if struct_name not in self.struct_name_to_ast:
@@ -359,7 +371,7 @@ class Interpreter(InterpreterBase):
         return False
     
 
-    def __eval_unary(self, arith_ast, t, f):
+    def __eval_neg_unary(self, arith_ast, t, f):
         value_obj = self.__eval_expr(arith_ast.get("op1"))
         if value_obj.type() != t:
             super().error(
@@ -367,6 +379,19 @@ class Interpreter(InterpreterBase):
                 f"Incompatible type for {arith_ast.elem_type} operation",
             )
         return Value(t, f(value_obj.value()))
+
+
+    def __eval_not_unary(self, arith_ast, t, f):
+        value_obj = self.__eval_expr(arith_ast.get("op1"))
+        if value_obj.type() not in t:
+            super().error(
+                ErrorType.TYPE_ERROR,
+                f"Incompatible type for {arith_ast.elem_type} operation",
+            )
+        if value_obj.type() == Type.INT:
+            value_obj = Value(Type.BOOL, value_obj.value() != 0)
+
+        return Value(Type.BOOL, f(value_obj.value()))
 
     def __setup_ops(self):
         self.op_to_lambda = {}
@@ -435,8 +460,8 @@ class Interpreter(InterpreterBase):
             or (y.type() == Type.INT and x.value() == (y.value() != 0) )
         )
         self.op_to_lambda[Type.BOOL]["!="] = lambda x, y: Value(
-            Type.BOOL, x.type() != y.type() or x.value() != y.value() \
-            or (y.type() == Type.INT and x.value() != (y.value() != 0) )
+            Type.BOOL, not(x.type() == y.type() and x.value() == y.value() \
+            or (y.type() == Type.INT and x.value() == (y.value() != 0) ))
         )
 
         #  set up operations on nil
@@ -522,23 +547,17 @@ class Interpreter(InterpreterBase):
 
 if __name__ == "__main__":
     program = """
-func main() : void {
-    var b: bool;
-    var n: int;
-
-    n = 5;
-    b = n;   /* Coerce int to bool (non-zero becomes true) */
-    print(b);   /* true */
-
-    n = 0;
-    b = n;   /* Coerce int to bool (0 becomes false) */
-    print(b);   /* false */
-
-    print(1 && 0);   /* false */
-    print(1 || 0);   /* true */
-    print(5 == true);   /* true */
-    print(0 == false);   /* true */
+struct s {
+  a:int;
 }
+
+func main() : int {
+  var x: s;
+  x = new s;
+  x = nil;
+  print(x.a);
+}
+
 """
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)

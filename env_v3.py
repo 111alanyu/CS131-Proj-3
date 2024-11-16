@@ -38,7 +38,10 @@ class EnvironmentManager:
                 if struct_name in env:
                     struct = env[struct_name].value()
                     if not isinstance(struct, dict):
-                        return VariableError.FAULT_ERROR
+                        if struct is None:
+                            return VariableError.FAULT_ERROR
+                        else:
+                            return VariableError.TYPE_ERROR
                     if field_name in struct:
                         return struct[field_name]
                     return VariableError.FAULT_ERROR
@@ -54,7 +57,7 @@ class EnvironmentManager:
                     var_name.pop(0)
                     while len(var_name) >= 1:
                         if not isinstance(struct, dict):
-                            return VariableError.FAULT_ERROR
+                            return VariableError.TYPE_ERROR
                         if field_name in struct:
                             value = struct[field_name]
                             if len(var_name) == 1:
@@ -87,7 +90,7 @@ class EnvironmentManager:
                 if struct_name in env:
                     struct = env[struct_name].value()
                     if not isinstance(struct, dict):
-                        return VariableError.FAULT_ERROR
+                        return VariableError.TYPE_ERROR
                     if field_name in struct:
                         struct[field_name] = value
                         return
@@ -105,7 +108,7 @@ class EnvironmentManager:
                     var_name.pop(0)
                     while len(var_name) >= 1:
                         if not isinstance(struct, dict):
-                            return VariableError.FAULT_ERROR
+                            return VariableError.TYPE_ERROR
                         if field_name in struct:
                             if len(var_name) == 1:
                                 struct[field_name] = value

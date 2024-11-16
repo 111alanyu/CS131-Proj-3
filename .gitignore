@@ -135,6 +135,7 @@ dmypy.json
 v1/
 v2/
 v3/
+v3_old/
 
 harness.py
 LICENSE
