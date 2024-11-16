@@ -367,7 +367,7 @@ class Interpreter(InterpreterBase):
             return False
         
         if oper in ["<", "<=", ">", ">=", "+", "-", "*", "/"]:
-            if obj1_type == Type.INT and obj2_type == Type.INT:
+            if (obj1_type == Type.INT and obj2_type == Type.INT) or (obj1_type == Type.STRING and obj2_type == Type.STRING):
                 return True
             return False
         
