@@ -471,10 +471,10 @@ class Interpreter(InterpreterBase):
         #  set up operations on nil
         self.op_to_lambda[Type.NIL] = {}
         self.op_to_lambda[Type.NIL]["=="] = lambda x, y: Value(
-            Type.BOOL, x.type() == y.type() and x.value() == y.value()
+            Type.BOOL, x.type() == y.type() and x.value() == y.value() or (y.type() == Type.STRUCT and y.value() == {}) 
         )
         self.op_to_lambda[Type.NIL]["!="] = lambda x, y: Value(
-            Type.BOOL, x.type() != y.type() or x.value() != y.value()
+            Type.BOOL, not(x.type() == y.type() and x.value() == y.value() or (y.type() == Type.STRUCT and y.value() == {}) )
         )
 
         #  set up operations on structs 
