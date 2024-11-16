@@ -417,11 +417,21 @@ class Interpreter(InterpreterBase):
         #  set up operations on structs 
         self.op_to_lambda[Type.STRUCT] = {}
         self.op_to_lambda[Type.STRUCT]["=="] = lambda x, y: Value(
+            Type.BOOL, y.type() == Type.NIL and len(x.value()) == 0
+        )
+        self.op_to_lambda[Type.STRUCT]["!="] = lambda x, y: Value(
+            Type.BOOL, y.type() != Type.NIL or (type(x.value()) == dict and  len(x.value()) != 0)
+        )
+
+        # TODO: This should error out
+        """
+        self.op_to_lambda[Type.STRUCT]["=="] = lambda x, y: Value(
             Type.BOOL, x.type() == y.type() and x.value() == y.value()
         )
         self.op_to_lambda[Type.STRUCT]["!="] = lambda x, y: Value(
             Type.BOOL, x.type() != y.type() or x.value() != y.value()
         )
+        """
 
     def __do_if(self, if_ast):
         cond_ast = if_ast.get("condition")
@@ -477,164 +487,6 @@ class Interpreter(InterpreterBase):
 
 
 if __name__ == "__main__":
-
-    program = """
-func foo(a:int, b:string, c:int, d:bool) : int {
-  print(b, d);
-  return a + c;
-}
-
-func talk_to(name:string): void {
-  if (name == "Carey") {
-     print("Go away!");
-     return;  /* using return is OK w/void, just don't specify a value */
-  }
-  print("Greetings");
-}
-
-func main() : void {
-  print(foo(10, "blah", 20, false));
-  talk_to("Bonnie");
-}
-    """
-    program = """
-func main() : void {
-	print("hello world");
-	var eyeballs: int;
-    eyeballs = 5;
-    var eyeballs: string;
-}
-"""
-    program = """
-func main() : void {
-  var n : int;
-  n = inputi("Enter a number:");
-  print(fact(n));
-}
-
-func fact(n : int) : int {
-  if (n <= 1) { return 1; }
-  return n * fact(n-1);
-}
-"""
-
-    program = """
-struct flea {
-  age: int;
-  infected : bool;
-}
-
-struct dog {
-  name: string;
-  vaccinated: bool;  
-  companion: flea;
-}
-
-func main() : void {
-  var d: dog;     
-  d = new dog;   /* sets d object reference to point to a dog structure */
-
-  print(d.vaccinated); /* prints false - default bool value */
-  print(d.companion); /* prints nil - default struct object reference */
-
-  /* we may now set d's fields */
-  d.name = "Koda";
-  d.vaccinated = true;
-  d.companion = new flea;
-  d.companion.age = 3; 
-    
-  print(d.name);
-  print(d.vaccinated);
-  print(d.companion.age);
-  print(d.companion.infected);
-}
-"""
-    program = """
-struct dog {
- bark: int;
- bite: int;
-}
-
-func foo(d: dog) : dog {  /* d holds the same object reference that the koda variable holds */
-  d.bark = 10;
-  return d;  		/* this returns the same object reference that the koda variable holds */
-}
-
- func main() : void {
-  var koda: dog;
-  var kippy: dog;
-  koda = new dog;
-  kippy = foo(koda);	/* kippy holds the same object reference as koda */
-  kippy.bite = 20;
-  print(koda.bark, " ", koda.bite); /* prints 10 20 */
-}
-
-"""
-    program = """
-struct s {
-  a:int;
-}
-
-func main() : int {
-  var x: s;
-  x.a = 10; 
-}
-
-    """
-    program = """
-func main() : void {
-	/*coercion and then use it later*/
-	var my_int : int;
-	my_int = 5;
-    if (my_int || false) {
-      print("this should print");
-    }
-    print("what is my_int?");
-    print(my_int);
-}
-
-"""
-    program = """
-func main() : void {
-  print(5 || false);
-  var a:int;
-  a = 1;
-  if (a) {
-    print("if works on integers now!");
-  }
-  foo(a-1);
-}
-
-func foo(b : bool) : void {
-  print(b);
-}
-"""
-    program = """
-struct dog {
-  bark: int;
-  bite: int;
-}
-
-func bar() : int {
-  return;  /* no return value specified - returns 0 */
-}
-
-func bletch() : bool {
-  print("hi");
-  /* no explicit return; bletch must return default bool of false */
-}
-
-func boing() : dog {
-  return;  /* returns nil */
-}
-
-func main() : void {
-   var val: int;
-   val = bar();
-   print(val);  /* prints 0 */
-   print(bletch()); /* prints false */
-   print(boing()); /* prints nil */
-}
-"""
+    program = """"""
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
