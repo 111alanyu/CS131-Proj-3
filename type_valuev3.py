@@ -39,6 +39,8 @@ def create_value(val):
         return Value(Type.STRING, val)
     elif isinstance(val, int):
         return Value(Type.INT, val)
+    elif isinstance(Type.VOID, val):
+        return Value(Type.VOID, val)
     else:
         raise ValueError("Unknown value type")
     

@@ -161,7 +161,7 @@ class Interpreter(InterpreterBase):
         # Otherwise, throw an error.
         if expected_return_type == InterpreterBase.VOID_DEF:
             if return_val == Interpreter.NIL_VALUE:
-                return Type.VOID
+                return create_value(Type.VOID)
             else:
                 super().error(ErrorType.TYPE_ERROR, f"Expected return type {expected_return_type}, got {return_val.type()}")
         if expected_return_type == Type.INT and return_val.type() == Type.NIL:
@@ -184,6 +184,7 @@ class Interpreter(InterpreterBase):
                 ErrorType.TYPE_ERROR,
                 f"Expected return type {expected_return_type}, got {return_val.type()}",
             )
+                
         # If the expected return value is not VOID, then check that the return value is of the expected type.
 
         return return_val
@@ -550,68 +551,30 @@ class Interpreter(InterpreterBase):
 
 if __name__ == "__main__":
     program = """
-struct node {
-    value: int;
-    next: node;
+struct woo {
+  main: int;
 }
 
-struct list {
-    head: node;
+struct foo {
+  bar: woo;
 }
 
-func create_list(): list {
-    var l: list;
-    l = new list;
-    l.head = nil;
-    return l;
+func main() : void {
+  var foo: woo;
+  print(foo != nil);
+  print(nil != foo);
+  foo = new woo;
+  var bar: foo;
+  bar = new foo;
+  print(bar.bar == nil);
+  print(nil == bar.bar);
+  bar.bar = foo;
+  bar.bar.main = 13;
+  print(bar.bar.main);
+  print("all good!");
+  return;
 }
 
-func append(l: list, val: int): void {
-    var new_node: node;
-    new_node = new node;
-    new_node.value = val;
-    new_node.next = nil;
-
-    if (l.head == nil) {
-        l.head = new_node;
-    } else {
-        var current: node;
-        for (current = l.head; current.next != nil; current = current.next) {
-            /* It doesn't work in Barista if it's empty, so this is just a useless line */
-            print("placeholder");
-        }
-        current.next = new_node;
-    }
-    return;
-}
-
-func print_list(l: list): void {
-    var current: node;
-
-    if (l.head == nil) {
-        print("List is empty.");
-        return;
-    }
-
-    for (current = l.head; current != nil; current = current.next) {
-        print(current.value);
-    }
-    return;
-}
-
-func main(): void {
-    var l: list;
-    l = create_list();
-
-    append(l, 10);
-    append(l, 20);
-    append(l, 30);
-
-    print("Printing the list:");
-    print_list(l);
-
-    return;
-}
-    """
+"""
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
