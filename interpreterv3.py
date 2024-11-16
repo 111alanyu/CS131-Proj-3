@@ -550,39 +550,67 @@ class Interpreter(InterpreterBase):
 
 if __name__ == "__main__":
     program = """
-struct Node {
+struct node {
     value: int;
-    next: Node;
+    next: node;
 }
 
-func update(n: Node) : void {
-    n.value = n.value + 10;
-    if (n.next != nil) {
-        update(n.next);
+struct list {
+    head: node;
+}
+
+func create_list(): list {
+    var l: list;
+    l = new list;
+    l.head = nil;
+    return l;
+}
+
+func append(l: list, val: int): void {
+    var new_node: node;
+    new_node = new node;
+    new_node.value = val;
+    new_node.next = nil;
+
+    if (l.head == nil) {
+        l.head = new_node;
+    } else {
+        var current: node;
+        for (current = l.head; current.next != nil; current = current.next) {
+            /* It doesn't work in Barista if it's empty, so this is just a useless line */
+            print("placeholder");
+        }
+        current.next = new_node;
     }
+    return;
 }
 
-func main() : void {
-    var n1: Node;
-    var n2: Node;
-    var n3: Node;
+func print_list(l: list): void {
+    var current: node;
 
-    n1 = new Node;
-    n2 = new Node;
-    n3 = new Node;
+    if (l.head == nil) {
+        print("List is empty.");
+        return;
+    }
 
-    n1.value = 1;
-    n2.value = 2;
-    n3.value = 3;
+    for (current = l.head; current != nil; current = current.next) {
+        print(current.value);
+    }
+    return;
+}
 
-    n1.next = n2;
-    n2.next = n3;
+func main(): void {
+    var l: list;
+    l = create_list();
 
-    update(n1);
+    append(l, 10);
+    append(l, 20);
+    append(l, 30);
 
-    print(n1.value);  /* 11 */
-    print(n2.value);  /* 12 */
-    print(n3.value);  /* 13 */
+    print("Printing the list:");
+    print_list(l);
+
+    return;
 }
     """
     interpreter = Interpreter(trace_output=True)
