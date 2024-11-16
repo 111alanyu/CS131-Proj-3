@@ -129,10 +129,14 @@ class Interpreter(InterpreterBase):
             else: 
                 result_type = result.type()
             if formal_ast.get("var_type") != result_type:
-                super().error(
-                    ErrorType.TYPE_ERROR,
-                    f"Expected type {formal_ast.get('var_type')}, got {result_type}",
-                )
+                if formal_ast.get("var_type") == Type.BOOL and result_type == Type.INT:
+                    print("result.value(): ", result.value())
+                    result = Value(Type.BOOL, result.value() != 0)
+                else:
+                    super().error(
+                        ErrorType.TYPE_ERROR,
+                        f"Expected type {formal_ast.get('var_type')}, got {result_type}",
+                    )
             
             arg_name = formal_ast.get("name")
             args[arg_name] = result
@@ -160,6 +164,9 @@ class Interpreter(InterpreterBase):
             return Value(Type.STRING, "")
         if expected_return_type == Type.BOOL and return_val.type() == Type.NIL:
             return Value(Type.BOOL, False)
+        
+        if expected_return_type == Type.BOOL and return_val.type() == Type.INT:
+            return Value(Type.BOOL, return_val.value() != 0)
         
 
         if expected_return_type != return_val.type() and not (return_val.type() == Type.STRUCT and return_val.struct_type() == expected_return_type):
@@ -367,10 +374,10 @@ class Interpreter(InterpreterBase):
             Type.BOOL, x.value() >= y.value()
         )
         self.op_to_lambda[Type.INT]["||"] = lambda x, y: Value(
-            Type.BOOL, x.value() or y.value()
+            Type.BOOL, bool(x.value() or y.value())
         )
         self.op_to_lambda[Type.INT]["&&"] = lambda x, y: Value(
-            Type.BOOL, x.value() and y.value()
+            Type.BOOL, bool(x.value() and y.value())
         )
         #  set up operations on strings
         self.op_to_lambda[Type.STRING] = {}
@@ -574,5 +581,33 @@ func main() : int {
 }
 
     """
+    program = """
+func main() : void {
+	/*coercion and then use it later*/
+	var my_int : int;
+	my_int = 5;
+    if (my_int || false) {
+      print("this should print");
+    }
+    print("what is my_int?");
+    print(my_int);
+}
+
+"""
+    program = """
+func main() : void {
+  print(5 || false);
+  var a:int;
+  a = 1;
+  if (a) {
+    print("if works on integers now!");
+  }
+  foo(a-1);
+}
+
+func foo(b : bool) : void {
+  print(b);
+}
+"""
     interpreter = Interpreter(trace_output=True)
     interpreter.run(program)
