@@ -482,7 +482,7 @@ class Interpreter(InterpreterBase):
             Type.BOOL, x.value() is y.value() or (y.type() == Type.NIL and x.value() == {})
         )
         self.op_to_lambda[Type.STRUCT]["!="] = lambda x, y: Value(
-            Type.BOOL, x.value() is not y.value() or (y.type() == Type.NIL and x.value() != {})
+            Type.BOOL, not (x.value() is y.value() or (y.type() == Type.NIL and x.value() == {}))
         )
 
         # TODO: This should error out
@@ -550,18 +550,40 @@ class Interpreter(InterpreterBase):
 
 if __name__ == "__main__":
     program = """
-struct animal {
-    name : string;
-    noise : string;
-    color : string;
-    extinct : bool;
-    ears: int; 
-}
-func main() : void {
-   var pig : animal;
-   pig.noise = "oink";
+struct Node {
+    value: int;
+    next: Node;
 }
 
+func update(n: Node) : void {
+    n.value = n.value + 10;
+    if (n.next != nil) {
+        update(n.next);
+    }
+}
+
+func main() : void {
+    var n1: Node;
+    var n2: Node;
+    var n3: Node;
+
+    n1 = new Node;
+    n2 = new Node;
+    n3 = new Node;
+
+    n1.value = 1;
+    n2.value = 2;
+    n3.value = 3;
+
+    n1.next = n2;
+    n2.next = n3;
+
+    update(n1);
+
+    print(n1.value);  /* 11 */
+    print(n2.value);  /* 12 */
+    print(n3.value);  /* 13 */
+}
     """
-    interpreter = Interpreter(trace_output=False)
+    interpreter = Interpreter(trace_output=True)
     interpreter.run(program)
