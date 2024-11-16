@@ -68,4 +68,6 @@ def get_printable(val):
         return "false"
     if val.type() == Type.STRUCT:
         return "nil"
+    if val.type() == Type.NIL:
+        return "nil"
     return None

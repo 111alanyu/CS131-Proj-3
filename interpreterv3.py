@@ -164,10 +164,10 @@ class Interpreter(InterpreterBase):
             return Value(Type.STRING, "")
         if expected_return_type == Type.BOOL and return_val.type() == Type.NIL:
             return Value(Type.BOOL, False)
-        
         if expected_return_type == Type.BOOL and return_val.type() == Type.INT:
             return Value(Type.BOOL, return_val.value() != 0)
-        
+        if expected_return_type in self.struct_name_to_ast and return_val.type() == Type.NIL:
+            return Value(Type.NIL, create_value_from_type(Type.NIL))
 
         if expected_return_type != return_val.type() and not (return_val.type() == Type.STRUCT and return_val.struct_type() == expected_return_type):
             super().error(
@@ -609,5 +609,32 @@ func foo(b : bool) : void {
   print(b);
 }
 """
-    interpreter = Interpreter(trace_output=True)
+    program = """
+struct dog {
+  bark: int;
+  bite: int;
+}
+
+func bar() : int {
+  return;  /* no return value specified - returns 0 */
+}
+
+func bletch() : bool {
+  print("hi");
+  /* no explicit return; bletch must return default bool of false */
+}
+
+func boing() : dog {
+  return;  /* returns nil */
+}
+
+func main() : void {
+   var val: int;
+   val = bar();
+   print(val);  /* prints 0 */
+   print(bletch()); /* prints false */
+   print(boing()); /* prints nil */
+}
+"""
+    interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
