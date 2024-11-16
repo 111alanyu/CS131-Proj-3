@@ -14,7 +14,7 @@ class EnvironmentManager:
     2. Get variable from strcut (the variable is defined in the struct)
     3. Get variable from struct in struct ... (here, the variable IS DEFINED IN THE STRUCT, no top level varialb)
     
-    TODO: I need to recode this. Weill do tmr. 
+    Fault error if the field is not found, name error if the struct is not initalized?
     """
     # TODO: need to re-write this for struct of structs
 
@@ -42,9 +42,10 @@ class EnvironmentManager:
                             return VariableError.FAULT_ERROR
                         else:
                             return VariableError.TYPE_ERROR
+                    elif struct == {}:
+                        return VariableError.FAULT_ERROR
                     if field_name in struct:
                         return struct[field_name]
-                    return VariableError.FAULT_ERROR
             return VariableError.NAME_ERROR
         else:
             struct_name = var_name[0]
@@ -57,7 +58,12 @@ class EnvironmentManager:
                     var_name.pop(0)
                     while len(var_name) >= 1:
                         if not isinstance(struct, dict):
-                            return VariableError.TYPE_ERROR
+                            if struct is None:
+                                return VariableError.FAULT_ERROR
+                            else:
+                                return VariableError.TYPE_ERROR
+                        elif struct == {}:
+                            return VariableError.FAULT_ERROR
                         if field_name in struct:
                             value = struct[field_name]
                             if len(var_name) == 1:
@@ -90,7 +96,12 @@ class EnvironmentManager:
                 if struct_name in env:
                     struct = env[struct_name].value()
                     if not isinstance(struct, dict):
-                        return VariableError.TYPE_ERROR
+                        if struct is None:
+                            return VariableError.FAULT_ERROR
+                        else:
+                            return VariableError.TYPE_ERROR
+                    elif struct == {}:
+                        return VariableError.FAULT_ERROR
                     if field_name in struct:
                         struct[field_name] = value
                         return
@@ -108,7 +119,12 @@ class EnvironmentManager:
                     var_name.pop(0)
                     while len(var_name) >= 1:
                         if not isinstance(struct, dict):
-                            return VariableError.TYPE_ERROR
+                            if struct is None:
+                                return VariableError.FAULT_ERROR
+                            else:
+                                return VariableError.TYPE_ERROR
+                        elif struct == {}:
+                            return VariableError.FAULT_ERROR
                         if field_name in struct:
                             if len(var_name) == 1:
                                 struct[field_name] = value

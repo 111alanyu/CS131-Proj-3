@@ -164,7 +164,6 @@ class Interpreter(InterpreterBase):
                 return Type.VOID
             else:
                 super().error(ErrorType.TYPE_ERROR, f"Expected return type {expected_return_type}, got {return_val.type()}")
-        print("EXPECTED RETURN TYPE", expected_return_type)
         if expected_return_type == Type.INT and return_val.type() == Type.NIL:
             return Value(Type.INT, 0)
         elif expected_return_type == Type.STRING and return_val.type() == Type.NIL:
@@ -225,6 +224,10 @@ class Interpreter(InterpreterBase):
         elif assign_variable == VariableError.FAULT_ERROR:
             super().error(
                 ErrorType.FAULT_ERROR, f"Attempt to access field of nil object"
+            )
+        elif assign_variable == VariableError.TYPE_ERROR:
+            super().error(
+                ErrorType.TYPE_ERROR, f"Attempt to access field of non-struct object"
             )
         assign_variable_type = assign_variable.type()
 
@@ -350,7 +353,7 @@ class Interpreter(InterpreterBase):
             if (obj1_type == Type.BOOL and obj2_type == Type.BOOL) or (obj1_type == Type.BOOL and obj2_type == Type.INT):
                 return True
             # Structs can be compared to other structs and nil
-            if (obj1_type == Type.STRUCT and obj2_type == Type.STRUCT) or (obj1_type == Type.STRUCT and obj2_type == Type.NIL):
+            if (obj1_type == Type.STRUCT and obj2_type == Type.STRUCT and obj1.value().keys() == obj2.value().keys()) or (obj1_type == Type.STRUCT and obj2_type == Type.NIL):
                 return True
             # Nil can be compared to nil and structs
             if (obj1_type == Type.NIL and obj2_type == Type.NIL) or (obj1_type == Type.NIL and obj2_type == Type.STRUCT):
@@ -547,17 +550,18 @@ class Interpreter(InterpreterBase):
 
 if __name__ == "__main__":
     program = """
-struct s {
-  a:int;
+struct animal {
+    name : string;
+    noise : string;
+    color : string;
+    extinct : bool;
+    ears: int; 
+}
+func main() : void {
+   var pig : animal;
+   pig.noise = "oink";
 }
 
-func main() : int {
-  var x: s;
-  x = new s;
-  x = nil;
-  print(x.a);
-}
-
-"""
+    """
     interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
