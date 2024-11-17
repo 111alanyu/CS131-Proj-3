@@ -3,6 +3,7 @@ class VariableError(Enum):
     TYPE_ERROR = 1
     NAME_ERROR = 2
     FAULT_ERROR = 3
+    DEBUG_ERROR = 4
 class EnvironmentManager:
     def __init__(self):
         self.environment = []
@@ -43,7 +44,7 @@ class EnvironmentManager:
                         else:
                             return VariableError.TYPE_ERROR
                     elif struct == {}:
-                        return VariableError.FAULT_ERROR
+                        return VariableError.NAME_ERROR
                     if field_name in struct:
                         return struct[field_name]
             return VariableError.NAME_ERROR

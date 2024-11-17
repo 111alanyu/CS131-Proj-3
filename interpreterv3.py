@@ -250,7 +250,12 @@ class Interpreter(InterpreterBase):
             super().error(
                 ErrorType.FAULT_ERROR, f"Attempt to access field of nil object"
             )
-        
+        elif ret == VariableError.TYPE_ERROR:
+            super().error(
+                ErrorType.TYPE_ERROR, f"Attempt to access field of nil object"
+            )
+        elif ret == VariableError.DEBUG_ERROR:
+            print("DEBUG: ALPHA")
 
     def __var_def(self, var_ast):
         var_name = var_ast.get("name")
@@ -295,6 +300,8 @@ class Interpreter(InterpreterBase):
                 super().error(ErrorType.FAULT_ERROR, f"Attempt to access field of nil object")
             elif val == VariableError.TYPE_ERROR:
                 super().error(ErrorType.TYPE_ERROR, f"Attempt to access field of non-struct object")
+            elif val == VariableError.DEBUG_ERROR:
+                print("DBUG: BETA")
             return val
         if expr_ast.elem_type == InterpreterBase.FCALL_NODE:
             return self.__call_func(expr_ast)
@@ -354,7 +361,9 @@ class Interpreter(InterpreterBase):
             if (obj1_type == Type.BOOL and obj2_type == Type.BOOL) or (obj1_type == Type.BOOL and obj2_type == Type.INT):
                 return True
             # Structs can be compared to other structs and nil
-            if (obj1_type == Type.STRUCT and obj2_type == Type.STRUCT and obj1.value().keys() == obj2.value().keys()) or (obj1_type == Type.STRUCT and obj2_type == Type.NIL):
+            if (obj1_type == Type.STRUCT and obj2_type == Type.STRUCT and obj1.value().keys() == obj2.value().keys()) \
+            or (obj1_type == Type.STRUCT and obj2_type == Type.NIL) \
+            or (obj1.type() == Type.STRUCT and obj2.type() == Type.STRUCT and obj1.struct_type() == obj2.struct_type()):
                 return True
             # Nil can be compared to nil and structs
             if (obj1_type == Type.NIL and obj2_type == Type.NIL) or (obj1_type == Type.NIL and obj2_type == Type.STRUCT):
@@ -478,12 +487,21 @@ class Interpreter(InterpreterBase):
         )
 
         #  set up operations on structs 
+        # if x is a struct
         self.op_to_lambda[Type.STRUCT] = {}
         self.op_to_lambda[Type.STRUCT]["=="] = lambda x, y: Value(
-            Type.BOOL, x.value() is y.value() or (y.type() == Type.NIL and x.value() == {})
+            Type.BOOL, x.value() is y.value() or \
+            (x.value() == Type.NIL and y.value() == Type.NIL) or \
+            (x.type() == Type.STRUCT and y.type() == Type.STRUCT and x.struct_type() == y.struct_type() and x.value() == y.value()) or \
+            (x.type() == Type.STRUCT and y.type() == Type.NIL and x.value() == {})
         )
         self.op_to_lambda[Type.STRUCT]["!="] = lambda x, y: Value(
-            Type.BOOL, not (x.value() is y.value() or (y.type() == Type.NIL and x.value() == {}))
+            Type.BOOL, not (
+                x.value() is y.value() or \
+                (x.value() == Type.NIL and y.value() == Type.NIL) or \
+                (x.type() == Type.STRUCT and y.type() == Type.STRUCT and x.struct_type() == y.struct_type() and x.value() == y.value()) or \
+                (x.type() == Type.STRUCT and y.type() == Type.NIL and x.value() == {})
+            )
         )
 
         # TODO: This should error out
@@ -551,29 +569,36 @@ class Interpreter(InterpreterBase):
 
 if __name__ == "__main__":
     program = """
-struct woo {
-  main: int;
+struct node {
+  value: int;
+  next: node;
 }
 
-struct foo {
-  bar: woo;
-}
+func main(): void {
+  var root: node;
+  var here: node;
+  root = new node;
+  here = root;
+  root.value = 21;
+  var i: int;
+  for (i = 20; i; i = i - 1) {
+    here = insert_node(here, i);
+  }
 
-func main() : void {
-  var foo: woo;
-  print(foo != nil);
-  print(nil != foo);
-  foo = new woo;
-  var bar: foo;
-  bar = new foo;
-  print(bar.bar == nil);
-  print(nil == bar.bar);
-  bar.bar = foo;
-  bar.bar.main = 13;
-  print(bar.bar.main);
-  print("all good!");
+  for (here = root; here != nil; here = here.next) {
+    print(here.value);
+  }
   return;
 }
+
+func insert_node(nd: node, val: int): node {
+  var new_nd: node;
+  new_nd = new node;
+  new_nd.value = val;
+  nd.next = new_nd;
+  return new_nd;
+}
+
 
 """
     interpreter = Interpreter(trace_output=False)
