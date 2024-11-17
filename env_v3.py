@@ -44,7 +44,7 @@ class EnvironmentManager:
                         else:
                             return VariableError.TYPE_ERROR
                     elif struct == {}:
-                        return VariableError.NAME_ERROR
+                        return VariableError.FAULT_ERROR
                     if field_name in struct:
                         return struct[field_name]
             return VariableError.NAME_ERROR
