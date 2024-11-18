@@ -55,6 +55,8 @@ def create_value_from_type(val_type, struct_type=None):
         return Value(Type.NIL, None)
     elif val_type == Type.STRUCT:
         return Value(Type.STRUCT, {}, struct_type)
+    elif val_type == Type.VOID:
+        return Value(Type.VOID, None)
     else:
         raise ValueError("Unknown value type")
 

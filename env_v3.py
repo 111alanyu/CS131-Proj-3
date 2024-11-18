@@ -37,13 +37,14 @@ class EnvironmentManager:
             field_name = var_name[1]
             for env in reversed(cur_func_env):
                 if struct_name in env:
-                    struct = env[struct_name].value()
+                    struct = env[struct_name]
+                    struct = struct.value()
                     if not isinstance(struct, dict):
                         if struct is None:
                             return VariableError.FAULT_ERROR
                         else:
                             return VariableError.TYPE_ERROR
-                    elif struct == {}:
+                    elif struct == {}: # this happens
                         return VariableError.FAULT_ERROR
                     if field_name in struct:
                         return struct[field_name]

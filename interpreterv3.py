@@ -161,7 +161,7 @@ class Interpreter(InterpreterBase):
         # Otherwise, throw an error.
         if expected_return_type == InterpreterBase.VOID_DEF:
             if return_val == Interpreter.NIL_VALUE:
-                return create_value(Type.VOID)
+                return create_value_from_type(Type.VOID)
             else:
                 super().error(ErrorType.TYPE_ERROR, f"Expected return type {expected_return_type}, got {return_val.type()}")
         if expected_return_type == Type.INT and return_val.type() == Type.NIL:
@@ -193,6 +193,8 @@ class Interpreter(InterpreterBase):
         output = ""
         for arg in args:
             result = self.__eval_expr(arg)  # result is a Value object
+            if result.type() == Type.VOID:
+                super().error(ErrorType.TYPE_ERROR, "Cannot print void value")
             output = output + get_printable(result)
         super().output(output)
         return Interpreter.NIL_VALUE
@@ -297,6 +299,7 @@ class Interpreter(InterpreterBase):
             if val == VariableError.NAME_ERROR:
                 super().error(ErrorType.NAME_ERROR, f"Undefined variable {var_name}")
             elif val == VariableError.FAULT_ERROR:
+                # if the field does not exist in that struct, it should fail out
                 super().error(ErrorType.FAULT_ERROR, f"Attempt to access field of nil object")
             elif val == VariableError.TYPE_ERROR:
                 super().error(ErrorType.TYPE_ERROR, f"Attempt to access field of non-struct object")
@@ -569,36 +572,34 @@ class Interpreter(InterpreterBase):
 
 if __name__ == "__main__":
     program = """
-struct node {
-  value: int;
-  next: node;
+func main(): void {
+  var a: bool;
+  a = 10;
+  print(a);
+  if (a) {
+    var a:string;
+    a = "shadowed";
+    print(a);
+  }
+  print(a);
+  var b: int;
+  b = inputi("input prompt");
+  print(b);
+  foo(5);
+  foo(0);
+  foo(b);
+  print(bar());
+  print("should not print");
 }
 
-func main(): void {
-  var root: node;
-  var here: node;
-  root = new node;
-  here = root;
-  root.value = 21;
-  var i: int;
-  for (i = 20; i; i = i - 1) {
-    here = insert_node(here, i);
-  }
-
-  for (here = root; here != nil; here = here.next) {
-    print(here.value);
-  }
+func foo(a: bool) : void {
+  print(a);
   return;
 }
 
-func insert_node(nd: node, val: int): node {
-  var new_nd: node;
-  new_nd = new node;
-  new_nd.value = val;
-  nd.next = new_nd;
-  return new_nd;
+func bar() : void {
+  return;
 }
-
 
 """
     interpreter = Interpreter(trace_output=False)
