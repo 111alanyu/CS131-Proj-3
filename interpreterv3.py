@@ -434,8 +434,8 @@ class Interpreter(InterpreterBase):
                 or (y.type() == Type.BOOL and (x.value() != 0) == y.value())
         )
         self.op_to_lambda[Type.INT]["!="] = lambda x, y: Value(
-            Type.BOOL, x.type() != y.type() or x.value() != y.value() \
-                or (y.type() == Type.BOOL and (x.value() != 0) != y.value())
+            Type.BOOL, not (x.type() == y.type() and x.value() == y.value()\
+                or (y.type() == Type.BOOL and (x.value() != 0) == y.value()))
 
         )
         self.op_to_lambda[Type.INT]["<"] = lambda x, y: Value(
