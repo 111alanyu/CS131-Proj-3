@@ -135,6 +135,7 @@ class Interpreter(InterpreterBase):
         for formal_ast, actual_ast in zip(formal_args, actual_args):
             result = copy.copy(self.__eval_expr(actual_ast))
             result_type = None
+            
             if result.type() == Type.STRUCT:
                 result_type = result.struct_type()
             else: 
@@ -164,6 +165,7 @@ class Interpreter(InterpreterBase):
         # Check if the expected return value is VOID. If it is, check that the return value is NIL.
         # If the return value IS NIL, then return VOID (since there is special handling). 
         # Otherwise, throw an error.
+
 
         if expected_return_type == InterpreterBase.VOID_DEF:
             if return_val == Interpreter.NIL_VALUE or return_val.type() == Type.NIL:
@@ -334,8 +336,9 @@ class Interpreter(InterpreterBase):
             fields = {}
             for field_name, field_type in struct_def["fields"].items():
                 if field_type in self.struct_name_to_ast:
-                    field_type = Type.STRUCT
-                fields[field_name] = create_value_from_type(field_type)
+                    fields[field_name] = create_value_from_type(Type.STRUCT, field_type)
+                else:
+                    fields[field_name] = create_value_from_type(field_type)
             return Value(Type.STRUCT, fields, struct_name)
 
     def __eval_op(self, arith_ast):
@@ -569,18 +572,117 @@ class Interpreter(InterpreterBase):
         if expr_ast is None:
             return (ExecStatus.RETURN, Interpreter.NIL_VALUE)
         value_obj = copy.copy(self.__eval_expr(expr_ast))
+        if value_obj.type() == Type.NIL:
+            super().error(ErrorType.TYPE_ERROR, "Cannot return nil")
         return (ExecStatus.RETURN, value_obj)
 
 
 if __name__ == "__main__":
     program = """
-func foo() : int {
-    return nil;
+struct maybe_int {
+  present : bool;
+  val : int;
 }
 
-func main() : void {
-    foo();
+struct tree {
+  left : tree;
+  right : tree;
+  val : maybe_int;
 }
+
+func definitely_int(value : int) : maybe_int {
+  var ret : maybe_int;
+  ret = new maybe_int;
+  ret.present = true;
+  ret.val = value;
+  return ret;
+}
+
+func new_tree() : tree {
+  var ret : tree;
+  ret = new tree;
+  ret.val = new maybe_int;
+  return ret;
+}
+
+func new_tree(root : int) : tree {
+  var ret : tree;
+  ret = new tree;
+  ret.val = definitely_int(root);
+  return ret;
+}
+
+func insert_sorted(root: tree, value : int) : void {
+  if (!root.val.present) {
+    root.val = definitely_int(value);
+  } else {
+    if (value <= root.val.val) {
+      if (root.left == nil) {
+        root.left = new_tree(value);
+      } else {
+        insert_sorted(root.left, value);
+      }
+    } else {
+      if (root.right == nil) {
+        root.right = new_tree(value);
+      } else {
+        insert_sorted(root.right, value);
+      }
+    }
+  }
+}
+
+func get_size(root : tree) : int {
+  if (root == nil) {
+    return 0;
+  }
+  var sum : int;
+  if (root.val.present) {
+    sum = 1;
+  }
+  return sum + get_size(root.left) + get_size(root.right);
+}
+
+func get_item(root : tree, index : int) : maybe_int {
+  var offset : int;
+  offset = get_size(root.left);
+  if (index < offset) {
+    return get_item(root.left, index);
+  }
+  if (root.val.present) {
+    if (index == offset) {
+      return root.val;
+    }
+    offset = offset + 1;
+  }
+  if (root.right == nil) {
+    return new maybe_int;
+  }
+  return get_item(root.right, index - offset);
+}
+
+func main () : void {
+  var list : tree;
+  list = new_tree();
+  insert_sorted(list, 5);
+  insert_sorted(list, 1);
+  insert_sorted(list, 3);
+  insert_sorted(list, 4);
+  insert_sorted(list, 11);
+  insert_sorted(list, 8);
+  insert_sorted(list, 6);
+
+  var i : int;
+  for (i = 0; true; i = i + 1) {
+    var result : maybe_int;
+    result = get_item(list, i);
+    if (!result.present) {
+      return;
+    }
+    print(result.val);
+  }
+}
+
 """
-    interpreter = Interpreter(trace_output=True)
+    interpreter = Interpreter(trace_output=False)
     interpreter.run(program)
