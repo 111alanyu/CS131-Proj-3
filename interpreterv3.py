@@ -442,8 +442,8 @@ class Interpreter(InterpreterBase):
                 or (y.type() == Type.BOOL and (x.value() != 0) == y.value())
         )
         self.op_to_lambda[Type.INT]["!="] = lambda x, y: Value(
-            Type.BOOL, x.type() != y.type() or x.value() != y.value() \
-                or (y.type() == Type.BOOL and (x.value() != 0) != y.value())
+            Type.BOOL, not (x.type() == y.type() and x.value() == y.value()\
+                or (y.type() == Type.BOOL and (x.value() != 0) == y.value()))
 
         )
         self.op_to_lambda[Type.INT]["<"] = lambda x, y: Value(
@@ -574,33 +574,13 @@ class Interpreter(InterpreterBase):
 
 if __name__ == "__main__":
     program = """
-struct dog {
-  bark: int;
-  bite: int;
-}
-
-func bar() : int {
-  return;  /* no return value specified - returns 0 */
-}
-
-func bletch() : bool {
-  print("hi");
-  /* no explicit return; bletch must return default bool of false */
-}
-
-func boing() : dog {
-  return;  /* returns nil */
+func foo() : int {
+    return nil;
 }
 
 func main() : void {
-   var val: int;
-   val = bar();
-   print(val);  /* prints 0 */
-   print(bletch()); /* prints false */
-   print(boing()); /* prints nil */
+    foo();
 }
-
-
 """
     interpreter = Interpreter(trace_output=True)
     interpreter.run(program)

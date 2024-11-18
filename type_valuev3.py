@@ -9,6 +9,7 @@ class Type:
     NIL = "nil"
     STRUCT = "struct"
     VOID = "void"
+    NIL_SPECIAL = "nil_special"
 
 
 # Represents a value, which has a type and its value
