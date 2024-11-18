@@ -571,45 +571,19 @@ class Interpreter(InterpreterBase):
         if expr_ast is None:
             return (ExecStatus.RETURN, Interpreter.NIL_VALUE)
         value_obj = copy.copy(self.__eval_expr(expr_ast))
-        print("VALUE OBJECT: ", value_obj.type(), value_obj.value(), value_obj.struct_type())
+        if value_obj.type() == Type.NIL:
+            super().error(ErrorType.TYPE_ERROR, "Cannot return nil")
         return (ExecStatus.RETURN, value_obj)
 
 
 if __name__ == "__main__":
     program = """
-struct A {x: int;}
-struct B {x: int;}
-
-func main(): void {
-  var a: A;
-  var b: B;
-  a = getAnil();
-  b = getBnil();
-  print(a);
-  print(b);
-  print("fine so far");
-  getB();
-  return;
+func foo() : int {
+    return nil;
 }
 
-func getA() : A {
-  var b: B;
-  b = nil;
-  return b;
-}
-
-func getB() : B {
-  var a: A;
-  a = nil;
-  return a;
-}
-
-func getAnil() : A {
-  return nil;
-}
-
-func getBnil() : B {
-  return nil;
+func main() : void {
+    foo();
 }
 
 """
