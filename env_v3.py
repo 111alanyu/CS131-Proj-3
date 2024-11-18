@@ -86,6 +86,8 @@ class EnvironmentManager:
         elif len(var_name) == 1:
             for env in reversed(cur_func_env):
                 if symbol in env:
+                    if env[symbol].type() == "struct":
+                        value.s = env[symbol].s
                     env[symbol] = value
                     return
             return VariableError.NAME_ERROR

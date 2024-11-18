@@ -159,6 +159,10 @@ class Interpreter(InterpreterBase):
         # Check if the expected return value is VOID. If it is, check that the return value is NIL.
         # If the return value IS NIL, then return VOID (since there is special handling). 
         # Otherwise, throw an error.
+
+        print("Expected return type: ", expected_return_type)
+        print("Return value: ", return_val.type(), return_val.value(), return_val.struct_type())
+
         if expected_return_type == InterpreterBase.VOID_DEF:
             if return_val == Interpreter.NIL_VALUE:
                 return create_value_from_type(Type.VOID)
@@ -567,40 +571,47 @@ class Interpreter(InterpreterBase):
         if expr_ast is None:
             return (ExecStatus.RETURN, Interpreter.NIL_VALUE)
         value_obj = copy.copy(self.__eval_expr(expr_ast))
+        print("VALUE OBJECT: ", value_obj.type(), value_obj.value(), value_obj.struct_type())
         return (ExecStatus.RETURN, value_obj)
 
 
 if __name__ == "__main__":
     program = """
+struct A {x: int;}
+struct B {x: int;}
+
 func main(): void {
-  var a: bool;
-  a = 10;
+  var a: A;
+  var b: B;
+  a = getAnil();
+  b = getBnil();
   print(a);
-  if (a) {
-    var a:string;
-    a = "shadowed";
-    print(a);
-  }
-  print(a);
-  var b: int;
-  b = inputi("input prompt");
   print(b);
-  foo(5);
-  foo(0);
-  foo(b);
-  print(bar());
-  print("should not print");
-}
-
-func foo(a: bool) : void {
-  print(a);
+  print("fine so far");
+  getB();
   return;
 }
 
-func bar() : void {
-  return;
+func getA() : A {
+  var b: B;
+  b = nil;
+  return b;
+}
+
+func getB() : B {
+  var a: A;
+  a = nil;
+  return a;
+}
+
+func getAnil() : A {
+  return nil;
+}
+
+func getBnil() : B {
+  return nil;
 }
 
 """
-    interpreter = Interpreter(trace_output=False)
+    interpreter = Interpreter(trace_output=True)
     interpreter.run(program)
