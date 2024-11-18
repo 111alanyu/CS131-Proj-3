@@ -1,0 +1,28 @@
+struct Person {
+    name: string;
+    age: int;
+}
+
+func main() : void {
+    var p1: Person;
+    var p2: Person;
+
+    p1 = new Person;
+    p2 = new Person;
+
+    print(p1 == p2);
+    print(p1 != p2);
+
+    p2 = p1;
+    print(p1 == p2);
+    print(p1 != p2);
+}
+
+/*
+*OUT*
+false
+true
+true
+false
+*OUT*
+*/

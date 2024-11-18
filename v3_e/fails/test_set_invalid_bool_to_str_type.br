@@ -1,0 +1,12 @@
+func main() : void {
+	var my_bool: bool;
+    my_bool = true;
+    my_bool = "hello";
+    print("WE SHOULD NOT SEE THIS PRINT");
+}
+
+/*
+*OUT*
+ErrorType.TYPE_ERROR
+*OUT*
+*/

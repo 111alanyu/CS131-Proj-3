@@ -1,0 +1,21 @@
+struct Node {
+    value: int;
+}
+
+func main() : void {
+    var n1: Node;
+
+    n1 = new Node;
+
+    print(n1 == 0);
+
+    var n2: Node;
+    n2 = new Node;
+    print(n1 == n2);
+}
+
+/*
+*OUT*
+ErrorType.TYPE_ERROR
+*OUT*
+*/

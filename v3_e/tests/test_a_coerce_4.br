@@ -1,0 +1,28 @@
+func main() : void {
+    var b: bool;
+    var n: int;
+
+    n = 5;
+    b = n;   /* Coerce int to bool (non-zero becomes true) */
+    print(b);   /* true */
+
+    n = 0;
+    b = n;   /* Coerce int to bool (0 becomes false) */
+    print(b);   /* false */
+
+    print(1 && 0);   /* false */
+    print(1 || 0);   /* true */
+    print(5 == true);   /* true */
+    print(0 == false);   /* true */
+}
+
+/*
+*OUT*
+true
+false
+false
+true
+true
+true
+*OUT*
+*/

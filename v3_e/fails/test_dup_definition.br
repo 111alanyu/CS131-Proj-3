@@ -1,0 +1,11 @@
+func main() : void {
+	var eyeballs: int;
+    	eyeballs = 5;
+    	var eyeballs: string;
+}
+
+/*
+*OUT*
+ErrorType.NAME_ERROR
+*OUT*
+*/
