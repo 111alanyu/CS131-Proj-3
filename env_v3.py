@@ -8,6 +8,9 @@ class EnvironmentManager:
     def __init__(self):
         self.environment = []
 
+    def reset_env(self):
+        self.environment = []
+
     # We can define an error object here
 
     """

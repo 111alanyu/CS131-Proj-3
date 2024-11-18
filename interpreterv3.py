@@ -30,10 +30,13 @@ class Interpreter(InterpreterBase):
     # usese the provided Parser found in brewparse.py to parse the program
     # into an abstract syntax tree (ast)
     def run(self, program):
+        self.__setup_ops()
+        self.struct_name_to_ast = {}
         ast = parse_program(program)
         self.__set_up_struct_table(ast)
         self.__set_up_function_table(ast)
         self.env = EnvironmentManager()
+        self.env.reset_env()
         self.__call_func_aux("main", [])
 
     def __set_up_function_table(self, ast):
@@ -89,7 +92,7 @@ class Interpreter(InterpreterBase):
 
     def __run_statement(self, statement):
         status = ExecStatus.CONTINUE
-        return_val = None
+        return_val = Type.NIL
         if statement.elem_type == InterpreterBase.FCALL_NODE:
             self.__call_func(statement)
         elif statement.elem_type == "=":
@@ -103,6 +106,8 @@ class Interpreter(InterpreterBase):
         elif statement.elem_type == Interpreter.FOR_NODE:
             status, return_val = self.__do_for(statement)
 
+        if return_val == Interpreter.NIL_VALUE:
+            return (status, create_value_from_type(Type.NIL))
         return (status, return_val)
     
     def __call_func(self, call_node):
@@ -160,12 +165,9 @@ class Interpreter(InterpreterBase):
         # If the return value IS NIL, then return VOID (since there is special handling). 
         # Otherwise, throw an error.
 
-        print("Expected return type: ", expected_return_type)
-        print("Return value: ", return_val.type(), return_val.value(), return_val.struct_type())
-
         if expected_return_type == InterpreterBase.VOID_DEF:
-            if return_val == Interpreter.NIL_VALUE:
-                return create_value_from_type(Type.VOID)
+            if return_val == Interpreter.NIL_VALUE or return_val.type() == Type.NIL:
+                return create_value_from_type(Type.VOID, None)
             else:
                 super().error(ErrorType.TYPE_ERROR, f"Expected return type {expected_return_type}, got {return_val.type()}")
         if expected_return_type == Type.INT and return_val.type() == Type.NIL:
@@ -176,6 +178,11 @@ class Interpreter(InterpreterBase):
             return Value(Type.BOOL, False)
         elif expected_return_type == Type.BOOL and return_val.type() == Type.INT:
             return Value(Type.BOOL, return_val.value() != 0)
+        elif expected_return_type in self.struct_name_to_ast and return_val.struct_type() != expected_return_type and return_val.struct_type() != None:
+            super().error(
+                ErrorType.TYPE_ERROR,
+                f"Expected return type {expected_return_type}, got {return_val.struct_type()}",
+            )
         elif expected_return_type in self.struct_name_to_ast and return_val.type() == Type.NIL:
             return Value(Type.NIL, create_value_from_type(Type.NIL))
         elif expected_return_type != return_val.type() and not (return_val.type() == Type.STRUCT and return_val.struct_type() == expected_return_type):
@@ -238,8 +245,9 @@ class Interpreter(InterpreterBase):
             )
         assign_variable_type = assign_variable.type()
 
-        # TODO: This feels wrong. But the struct error should be caught by the if statement on 208
-        if assign_variable_type != value_type and (assign_variable_type != Type.STRUCT) and not (assign_variable_type == Type.BOOL and value_type == Type.INT) and not (assign_variable_type == Type.NIL and value_type == Type.STRUCT):
+        if assign_variable_type != value_type and (assign_variable_type != Type.STRUCT) and \
+            not (assign_variable_type == Type.BOOL and value_type == Type.INT) and \
+            not (assign_variable_type == Type.NIL and value_type == Type.STRUCT):
             super().error(
                 ErrorType.TYPE_ERROR,
                 f"Expected type {assign_variable_type}, got {value_obj.type()}",
@@ -511,16 +519,6 @@ class Interpreter(InterpreterBase):
             )
         )
 
-        # TODO: This should error out
-        """
-        self.op_to_lambda[Type.STRUCT]["=="] = lambda x, y: Value(
-            Type.BOOL, x.type() == y.type() and x.value() == y.value()
-        )
-        self.op_to_lambda[Type.STRUCT]["!="] = lambda x, y: Value(
-            Type.BOOL, x.type() != y.type() or x.value() != y.value()
-        )
-        """
-
     def __do_if(self, if_ast):
         cond_ast = if_ast.get("condition")
         result = self.__eval_expr(cond_ast)
@@ -571,46 +569,37 @@ class Interpreter(InterpreterBase):
         if expr_ast is None:
             return (ExecStatus.RETURN, Interpreter.NIL_VALUE)
         value_obj = copy.copy(self.__eval_expr(expr_ast))
-        print("VALUE OBJECT: ", value_obj.type(), value_obj.value(), value_obj.struct_type())
         return (ExecStatus.RETURN, value_obj)
 
 
 if __name__ == "__main__":
     program = """
-struct A {x: int;}
-struct B {x: int;}
-
-func main(): void {
-  var a: A;
-  var b: B;
-  a = getAnil();
-  b = getBnil();
-  print(a);
-  print(b);
-  print("fine so far");
-  getB();
-  return;
+struct dog {
+  bark: int;
+  bite: int;
 }
 
-func getA() : A {
-  var b: B;
-  b = nil;
-  return b;
+func bar() : int {
+  return;  /* no return value specified - returns 0 */
 }
 
-func getB() : B {
-  var a: A;
-  a = nil;
-  return a;
+func bletch() : bool {
+  print("hi");
+  /* no explicit return; bletch must return default bool of false */
 }
 
-func getAnil() : A {
-  return nil;
+func boing() : dog {
+  return;  /* returns nil */
 }
 
-func getBnil() : B {
-  return nil;
+func main() : void {
+   var val: int;
+   val = bar();
+   print(val);  /* prints 0 */
+   print(bletch()); /* prints false */
+   print(boing()); /* prints nil */
 }
+
 
 """
     interpreter = Interpreter(trace_output=True)
