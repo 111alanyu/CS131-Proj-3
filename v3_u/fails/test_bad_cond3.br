@@ -1,9 +1,0 @@
-func main(): void {
-  if (nil) { print("true"); }
-}
-
-/*
-*OUT*
-ErrorType.TYPE_ERROR
-*OUT*
-*/

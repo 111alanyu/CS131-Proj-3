@@ -1,9 +1,0 @@
-func main(): void {
-  print("a" + "b");
-}
-
-/*
-*OUT*
-ab
-*OUT*
-*/

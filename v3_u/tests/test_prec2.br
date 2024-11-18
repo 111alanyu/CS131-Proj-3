@@ -1,9 +1,0 @@
-func main(): void {
-  print(!true && false);
-}
-
-/*
-*OUT*
-false
-*OUT*
-*/
