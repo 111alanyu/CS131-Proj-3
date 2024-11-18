@@ -132,11 +132,6 @@ dmypy.json
 # mac stuff *shakes fist*
 .DS_Store
 
-v1/
-v2/
-v3/
-v3_old/
-
 harness.py
 LICENSE
 results.json
